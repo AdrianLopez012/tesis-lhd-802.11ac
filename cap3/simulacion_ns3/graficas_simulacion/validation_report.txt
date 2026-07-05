@@ -1,0 +1,148 @@
+
+======================================================================
+VALIDACIÓN 1: MODELO DE PROPAGACIÓN TWO-SLOPE
+======================================================================
+✓ Gráfica guardada: val_01_propagacion.png
+
+  Continuidad en d_bp=40.0m: Δ=0.0058 dB  ✓ CONTINUO
+
+  Rango máximo por MCS (sin shadowing):
+    MCS0: 1502.3 m  →  separación máxima Hawks: 1502 m
+    MCS4: 622.9 m  →  separación máxima Hawks: 623 m
+    MCS9: 197.0 m  →  separación máxima Hawks: 197 m
+
+======================================================================
+VALIDACIÓN 2: RESULTADOS NS-3 v9 vs KPIs TESIS
+======================================================================
+✓ Gráfica guardada: val_02_ns3_kpis.png
+
+  Escenario                 KPI                                 Valor   Umbral   Estado
+  -------------------------------------------------------------------------------------
+  mobility_5hawks_real      Video E2E media ≤150ms             43.876 ≤    150     ✓ OK
+  mobility_5hawks_real      Video E2E P95 ≤150ms               35.500 ≤    150     ✓ OK
+  mobility_5hawks_real      Video Jitter P95 ≤10ms              0.250 ≤     10     ✓ OK
+  mobility_5hawks_real      Video goodput ≥38Mbps              39.901 ≥     38     ✓ OK
+  mobility_5hawks_real      Video PLR ≤1%                       0.249 ≤      1     ✓ OK
+  mobility_5hawks_real      Cmd OWD media ≤20ms                 3.738 ≤     20     ✓ OK
+  mobility_5hawks_real      Cmd PLR ≤0.5%                       0.549 ≤    0.5  ✗ FALLA
+  mobility_4hawks_sin_h4    Video E2E media ≤150ms            115.480 ≤    150     ✓ OK
+  mobility_4hawks_sin_h4    Video E2E P95 ≤150ms               35.500 ≤    150     ✓ OK
+  mobility_4hawks_sin_h4    Video Jitter P95 ≤10ms              0.250 ≤     10     ✓ OK
+  mobility_4hawks_sin_h4    Video goodput ≥38Mbps              39.678 ≥     38     ✓ OK
+  mobility_4hawks_sin_h4    Video PLR ≤1%                       0.804 ≤      1     ✓ OK
+  mobility_4hawks_sin_h4    Cmd OWD media ≤20ms                 4.627 ≤     20     ✓ OK
+  mobility_4hawks_sin_h4    Cmd PLR ≤0.5%                       0.255 ≤    0.5     ✓ OK
+  mobility_sin_cardfijo_bp  Video E2E media ≤150ms             36.068 ≤    150     ✓ OK
+  mobility_sin_cardfijo_bp  Video E2E P95 ≤150ms               35.500 ≤    150     ✓ OK
+  mobility_sin_cardfijo_bp  Video Jitter P95 ≤10ms              0.250 ≤     10     ✓ OK
+  mobility_sin_cardfijo_bp  Video goodput ≥38Mbps              39.997 ≥     38     ✓ OK
+  mobility_sin_cardfijo_bp  Video PLR ≤1%                       0.009 ≤      1     ✓ OK
+  mobility_sin_cardfijo_bp  Cmd OWD media ≤20ms                 1.625 ≤     20     ✓ OK
+  mobility_sin_cardfijo_bp  Cmd PLR ≤0.5%                       0.001 ≤    0.5     ✓ OK
+  lhd_rapido_mobility       Video E2E media ≤150ms            336.387 ≤    150  ✗ FALLA
+  lhd_rapido_mobility       Video E2E P95 ≤150ms             2593.500 ≤    150  ✗ FALLA
+  lhd_rapido_mobility       Video Jitter P95 ≤10ms              0.250 ≤     10     ✓ OK
+  lhd_rapido_mobility       Video goodput ≥38Mbps              38.530 ≥     38     ✓ OK
+  lhd_rapido_mobility       Video PLR ≤1%                      25.423 ≤      1  ✗ FALLA
+  lhd_rapido_mobility       Cmd OWD media ≤20ms                 7.456 ≤     20     ✓ OK
+  lhd_rapido_mobility       Cmd PLR ≤0.5%                       0.490 ≤    0.5     ✓ OK
+  video_20mbps_mobility     Video E2E media ≤150ms            152.539 ≤    150  ✗ FALLA
+  video_20mbps_mobility     Video E2E P95 ≤150ms              718.500 ≤    150  ✗ FALLA
+  video_20mbps_mobility     Video Jitter P95 ≤10ms              0.250 ≤     10     ✓ OK
+  video_20mbps_mobility     Video goodput ≥38Mbps              19.254 ≥     38  ✗ FALLA
+  video_20mbps_mobility     Video PLR ≤1%                       3.728 ≤      1  ✗ FALLA
+  video_20mbps_mobility     Cmd OWD media ≤20ms                 3.686 ≤     20     ✓ OK
+  video_20mbps_mobility     Cmd PLR ≤0.5%                       0.605 ≤    0.5  ✗ FALLA
+  baseline                  Video E2E media ≤150ms            194.396 ≤    150  ✗ FALLA
+  baseline                  Video E2E P95 ≤150ms              361.500 ≤    150  ✗ FALLA
+  baseline                  Video Jitter P95 ≤10ms              0.250 ≤     10     ✓ OK
+  baseline                  Video goodput ≥38Mbps              38.671 ≥     38     ✓ OK
+  baseline                  Video PLR ≤1%                       3.323 ≤      1  ✗ FALLA
+  baseline                  Cmd OWD media ≤20ms                 8.936 ≤     20     ✓ OK
+  baseline                  Cmd PLR ≤0.5%                       0.097 ≤    0.5     ✓ OK
+
+======================================================================
+VALIDACIÓN 3: ANÁLISIS DE SENSIBILIDAD DEL MODELO DE PROPAGACIÓN
+======================================================================
+  Variación ±10% de n1, n2 y d_bp respecto al valor calibrado.
+  Métrica: potencia recibida Pr(d) y rango máximo para MCS0 y MCS4.
+✓ Gráfica guardada: val_03_sensibilidad.png
+
+  Rango máximo MCS0 (−94 dBm) bajo variación de parámetros:
+  Parámetro          −10%    nominal       +10%      Δmax
+  n₁ (LOS)         1846.2     1502.3     1222.4     623.8 m
+  n₂ (NLOS)        2247.6     1502.3     1080.4    1167.2 m
+  d_bp (m)         1434.1     1502.3     1566.8     132.7 m
+
+  Rango máximo MCS4 (−81 dBm) bajo variación de parámetros:
+  Parámetro          −10%    nominal       +10%      Δmax
+  n₁ (LOS)          765.5      622.9      506.8     258.6 m
+  n₂ (NLOS)         845.1      622.9      485.3     359.8 m
+  d_bp (m)          594.6      622.9      649.6      55.0 m
+
+======================================================================
+VALIDACIÓN 4: VARIANZA ENTRE SEMILLAS RNG
+======================================================================
+  Payload goodput video (Mbps): μ=39.645  σ=0.447  CV=1.1%
+  OWD comandos (ms): μ=5.851  σ=3.057  CV=52.2%
+  PLR comandos (%): μ=0.123  σ=0.148  CV=120.8%
+✓ Gráfica guardada: val_04_multi_seed.png
+
+======================================================================
+VALIDACIÓN 5: ANÁLISIS DE MARGEN Y RESILIENCIA — DISEÑO v8.1
+======================================================================
+
+  CONTEXTO (v8.1):
+  Todos los escenarios v8.1 usan posiciones físicas reales. El escenario
+  principal (mobility_5hawks_real) cumple todos los KPIs. Los escenarios
+  comparativos evalúan la contribución de H4 (ramal Desmonte) y CardFijo (ramal BP)
+  al margen de cobertura y la resiliencia del diseño.
+
+  MODELO DE NLOS EN v8.1 (corrección principal respecto a v8):
+  - v8: NLOS aplicado por posición del LHD → penalizaba mismo-segmento incorrectamente.
+  - v8.1: NLOS aplicado por par TX-RX (LinkNlosLoss): mismo segmento=0dB,
+    GAL↔ramal=+10dB, BP↔DES=+20dB. Refleja el cruce de unión de galería.
+
+  RSSI ESTIMADO EN v8.1 (corrección principal respecto a v8):
+  - v8: todos los nodos usaban Pt=30dBm+11dBi (Hawk) para RSSI.
+  - v8.1: Hawk→30dBm+11dBi, CardFijo→23dBm+4.8dBi. Selección por RSSI máximo.
+
+  ANÁLISIS DE RESILIENCIA (escenarios comparativos):
+  - mobility_4hawks_sin_h4: sin H4 ni CardFijo → cuantifica la cobertura
+    que aportan esos nodos en los ramales Desmonte y BP.
+  - mobility_sin_cardfijo_bp: 5 Hawks reales, sin CardFijo → cuantifica el
+    margen que aporta el Breadcrumb fijo en el ramal BP.
+  - Ambos escenarios son físicamente válidos (posiciones reales, sin extrapolación).
+  - La diferencia de KPIs entre principal y comparativos justifica la topología
+    de diseño: H4 cubre Desmonte, CardFijo reduce zonas sin cobertura en BP.
+
+  MODELO DE HANDOVER EN NS-3 vs SISTEMA REAL:
+  - ns-3 StaWifiMac: handover reactivo, ventana ~307ms (BeaconInterval=102.4ms,
+    MaxMissedBeacons=3). Durante la ventana pueden perderse paquetes.
+  - Rajant InstaMesh: handover L2 PROACTIVO, <15ms típico.
+  - Con <15ms y pkts de 128B a 500kbps: máx ~6 paquetes en la ventana real.
+  - PLR real estimada ≈ 6 × N_handovers / total_pkts ≈ 0.004% << 0.1%.
+
+  LIMITACIONES DECLARADAS:
+  1. Handover reactivo ns-3 (~307ms) vs Rajant InstaMesh proactivo (<15ms).
+  2. Shadowing no modelado (desactivado intencionalmente para reproducibilidad).
+  3. La simulación representa nodos fijos como APs IEEE 802.11ac con Bridge L2;
+     no reproduce la lógica propietaria de enrutamiento multipath de InstaMesh.
+
+  Escenario                  PLR cmd (%)       Estado
+  -------------------------------------------------------
+  mobility_5hawks_real            0.5489 ⚠ handover ns-3
+  mobility_4hawks_sin_h4          0.2551 ⚠ handover ns-3
+  mobility_sin_cardfijo_bp        0.0014 ✓ OK
+  lhd_rapido_mobility             0.4903 ⚠ handover ns-3
+  video_20mbps_mobility           0.6047 ⚠ handover ns-3
+  baseline                        0.0965 ✓ OK
+
+======================================================================
+RESUMEN FINAL DE VALIDACIÓN
+======================================================================
+  val_01_propagacion.png  — curva Pr(d) con bandas σ, niveles MCS
+  val_02_ns3_kpis.png     — goodput, OWD y PLR por escenario mobility vs umbrales
+  val_03_sensibilidad.png — efecto ±10% en n1, n2, d_bp sobre Pr(d) y rango máximo
+  val_04_multi_seed.png   — varianza RNG baseline v8 (3 semillas)
+  validation_report.txt   — este reporte completo

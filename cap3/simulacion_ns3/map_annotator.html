@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>Medidor de Mapa — Nivel 1640</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0D1117;color:#CDD9E5;
+     display:flex;height:100vh;overflow:hidden;user-select:none;}
+
+/* ── PANEL ── */
+#panel{width:250px;min-width:250px;background:#161B22;padding:10px 9px;
+       overflow-y:auto;display:flex;flex-direction:column;gap:6px;
+       border-right:1px solid #21262D;z-index:20;font-size:11px;}
+.sec{font-size:9px;color:#58A6FF;text-transform:uppercase;letter-spacing:1px;
+     border-bottom:1px solid #21262D;padding-bottom:2px;margin-top:5px;}
+.btn{border:none;color:#CDD9E5;padding:6px 9px;border-radius:5px;cursor:pointer;
+     font-size:11px;width:100%;text-align:left;transition:filter .1s;}
+.btn:hover{filter:brightness(1.35);} .btn.active{outline:2px solid #F0E68C;}
+.b0{background:#21262D;} .b1{background:#0D2F5E;} .b2{background:#0D3320;}
+.b3{background:#3E1010;} .b4{background:#3A3000;}
+.mk-btn{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:5px;
+        cursor:pointer;border:none;color:#CDD9E5;width:100%;font-size:11px;
+        text-align:left;margin-bottom:2px;}
+.mk-btn:hover{filter:brightness(1.3);} .mk-btn.active{outline:2px solid #F0E68C;}
+.mk-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;
+        border:2px solid rgba(255,255,255,0.35);}
+#mode-lbl{background:#0D1117;border-radius:5px;padding:5px 8px;color:#58A6FF;
+          text-align:center;font-weight:bold;font-size:11px;}
+#pt-list{background:#0D1117;border-radius:5px;padding:4px;
+         max-height:180px;overflow-y:auto;font-size:10px;}
+.pt-row{display:flex;align-items:center;gap:3px;padding:3px 2px;
+        border-bottom:1px solid #21262D;cursor:pointer;}
+.pt-row:hover{background:#21262D;} .pt-row.sel{background:#21262D;outline:1px solid #58A6FF;}
+.pt-n{width:16px;color:#8B949E;text-align:right;flex-shrink:0;}
+.pt-lb{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pt-d{color:#F0E68C;flex-shrink:0;min-width:42px;text-align:right;font-size:10px;}
+.pt-del{color:#F85149;padding:0 3px;flex-shrink:0;}
+#metrics{background:#0D1117;border-radius:5px;padding:6px;font-size:10px;line-height:1.9;}
+#metrics b{color:#58A6FF;}
+#export-box{background:#0D1117;border-radius:5px;padding:6px;font-size:9px;
+            font-family:Consolas,monospace;max-height:160px;overflow-y:auto;
+            color:#3FB950;white-space:pre;display:none;border:1px solid #21262D;}
+
+/* ── ÁREA PRINCIPAL: mapa + diagrama ── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#map-area{flex:1;overflow:auto;position:relative;background:#090D12;cursor:crosshair;}
+#mc{display:block;}
+
+/* diagrama a escala */
+#diagram-area{height:340px;min-height:340px;background:#0A1020;
+              border-top:2px solid #21262D;position:relative;overflow:hidden;}
+#diagram-title{position:absolute;top:6px;left:12px;color:#58A6FF;
+               font-size:10px;font-weight:bold;z-index:2;}
+#diagram-svg{width:100%;height:100%;}
+
+/* toolbar */
+#tb{position:absolute;top:10px;left:10px;background:#161B22CC;backdrop-filter:blur(8px);
+    border-radius:8px;padding:5px 12px;display:flex;gap:8px;align-items:center;
+    border:1px solid #21262D;z-index:10;flex-wrap:wrap;}
+#tb button{background:#21262D;border:none;color:#CDD9E5;padding:4px 10px;
+           border-radius:4px;cursor:pointer;font-size:11px;}
+#tb button:hover{background:#30363D;}
+#zoom-lbl{color:#8B949E;font-size:10px;min-width:36px;}
+#coord-lbl{color:#58A6FF;font-size:10px;min-width:130px;}
+
+/* popup distancia */
+#dist-popup{display:none;position:fixed;z-index:200;background:#161B22;
+            border:1px solid #58A6FF;border-radius:8px;padding:12px 14px;
+            box-shadow:0 6px 28px #000C;min-width:230px;}
+#dist-popup .dp-title{color:#58A6FF;font-size:11px;margin-bottom:7px;font-weight:bold;}
+#dist-popup input{width:100%;background:#0D1117;border:1px solid #30363D;
+                  color:#F0E68C;border-radius:4px;padding:6px 8px;font-size:15px;
+                  font-weight:bold;text-align:right;margin-bottom:7px;}
+#dist-popup .dp-row{display:flex;gap:6px;}
+#dist-popup .dp-row button{flex:1;padding:5px;border-radius:4px;border:none;cursor:pointer;font-size:11px;}
+#dist-ok  {background:#0D3320;color:#3FB950;}
+#dist-skip{background:#21262D;color:#8B949E;}
+
+#tip{position:fixed;background:#161B22EE;color:#CDD9E5;padding:5px 10px;
+     border-radius:6px;font-size:10px;pointer-events:none;display:none;
+     z-index:150;border:1px solid #30363D;line-height:1.6;white-space:pre;}
+</style>
+</head>
+<body>
+
+<!-- PANEL -->
+<div id="panel">
+  <div style="color:#58A6FF;font-weight:bold;font-size:13px;">Medidor — Nivel 1640</div>
+  <div id="mode-lbl">— selecciona modo —</div>
+
+  <div class="sec">Medir recorrido</div>
+  <div style="color:#8B949E;font-size:10px;line-height:1.5;">
+    Clic en el mapa → ingresa la distancia real → el diagrama de abajo se actualiza a escala.
+  </div>
+  <button class="btn b1 active" id="bt-draw">📐 Trazar y medir</button>
+  <button class="btn b0"        id="bt-break">⊕ Nuevo tramo</button>
+  <button class="btn b4"        id="bt-connect">🔗 Conectar dos puntos existentes</button>
+
+  <div class="sec">Marcar en el mapa</div>
+  <button class="mk-btn" id="mk-bp"       style="background:#0D2A0D;">
+    <div class="mk-dot" style="background:#27AE60;border-radius:2px;"></div>📍 Breakpoint (recojo mineral)</button>
+  <button class="mk-btn" id="mk-desmonte" style="background:#2A1A00;">
+    <div class="mk-dot" style="background:#E67E22;border-radius:2px;"></div>🟠 Descarga (desmonte)</button>
+
+  <!-- ocultos por ahora, disponibles más adelante -->
+  <div id="mk-extra" style="display:none;">
+    <button class="mk-btn" id="mk-hawk"     style="background:#0D2040;">
+      <div class="mk-dot" style="background:#1E90FF;"></div>Hawk FE1-5050</button>
+    <button class="mk-btn" id="mk-cardinal" style="background:#1E0D40;">
+      <div class="mk-dot" style="background:#9B59B6;"></div>Cardinal AP</button>
+    <button class="mk-btn" id="mk-frente"   style="background:#2A000D;">
+      <div class="mk-dot" style="background:#E74C3C;border-radius:2px;"></div>Frente de trabajo</button>
+    <button class="mk-btn" id="mk-nlos"     style="background:#2A0D0D;">
+      <div class="mk-dot" style="background:#C0392B;border-radius:0;"></div>Zona NLOS</button>
+    <button class="mk-btn" id="mk-core"     style="background:#002A1A;">
+      <div class="mk-dot" style="background:#2ECC71;border-radius:3px;"></div>NODO CORE / SW CORE</button>
+    <button class="mk-btn" id="mk-nodo"     style="background:#002A2A;">
+      <div class="mk-dot" style="background:#1ABC9C;border-radius:3px;"></div>Nodo de red</button>
+    <button class="mk-btn" id="mk-lhd"      style="background:#1A1A00;">
+      <div class="mk-dot" style="background:#F1C40F;border-radius:2px;"></div>LHD</button>
+  </div>
+  <button class="btn b0" id="bt-more-mk" style="font-size:10px;">▼ Más elementos...</button>
+
+  <div class="sec">Acciones</div>
+  <button class="btn b0" id="bt-undo">↩ Deshacer (Ctrl+Z)</button>
+  <button class="btn b3" id="bt-clr" >🧹 Borrar todo</button>
+  <button class="btn b0" id="bt-save">💾 Guardar</button>
+  <button class="btn b0" id="bt-load">📂 Restaurar</button>
+
+  <div class="sec">Puntos marcados</div>
+  <div id="pt-list"><div style="color:#8B949E;padding:3px;">Sin puntos aún</div></div>
+
+  <div class="sec">Resumen</div>
+  <div id="metrics"><div style="color:#8B949E;">Traza segmentos para ver distancias</div></div>
+
+  <div class="sec">Exportar</div>
+  <button class="btn b1" id="bt-png">📷 Descargar diagrama PNG</button>
+  <button class="btn b2" id="bt-exp">⚡ Generar parámetros C++</button>
+  <div id="export-box"></div>
+  <button class="btn b0" id="bt-copy" style="display:none;">📋 Copiar</button>
+</div>
+
+<!-- MAIN: mapa arriba + diagrama abajo -->
+<div id="main">
+
+  <!-- MAPA -->
+  <div id="map-area">
+    <div id="tb">
+      <button id="tb-zi">＋</button>
+      <button id="tb-zo">－</button>
+      <button id="tb-z1">1:1</button>
+      <button id="tb-zfit">Ajustar</button>
+      <span id="zoom-lbl">100%</span>
+      <span id="coord-lbl">x:— y:—</span>
+    </div>
+    <canvas id="mc"></canvas>
+    <div id="tip"></div>
+  </div>
+
+  <!-- DIAGRAMA A ESCALA -->
+  <div id="diagram-area">
+    <div id="diagram-title">Diagrama a escala — geometría del recorrido (se actualiza en tiempo real)</div>
+    <svg id="diagram-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+</div>
+
+<!-- POPUP DISTANCIA -->
+<div id="dist-popup">
+  <div class="dp-title" id="dp-title">Distancia del segmento</div>
+  <input id="dp-inp" type="number" placeholder="metros" min="0.01" step="0.01"/>
+  <div class="dp-row">
+    <button id="dist-ok">✓ Aceptar</button>
+    <button id="dist-skip">Sin medida</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  TIPOS DE MARCADORES
+// ═══════════════════════════════════════════════════
+const MK = {
+  hawk:     {label:'Hawk',        color:'#1E90FF', shape:'circle',  icon:'🔵'},
+  cardinal: {label:'Cardinal AP', color:'#9B59B6', shape:'circle',  icon:'🟣'},
+  bp:       {label:'Breakpoint',  color:'#27AE60', shape:'diamond', icon:'📍'},
+  desmonte: {label:'Desmonte',    color:'#E67E22', shape:'square',  icon:'🟠'},
+  frente:   {label:'Frente',      color:'#E74C3C', shape:'square',  icon:'🔴'},
+  nlos:     {label:'Zona NLOS',   color:'#C0392B', shape:'tri',     icon:'⚠'},
+  core:     {label:'NODO CORE',   color:'#2ECC71', shape:'hex',     icon:'⬡'},
+  nodo:     {label:'Nodo Red',    color:'#1ABC9C', shape:'square',  icon:'🟦'},
+  lhd:      {label:'LHD',         color:'#F1C40F', shape:'square',  icon:'🚜'},
+};
+
+const PALETTE=['#58A6FF','#3FB950','#F9A825','#FF7B72','#D2A8FF',
+               '#79C0FF','#56D364','#FFA657','#B392F0','#39D353'];
+
+// ═══════════════════════════════════════════════════
+//  ESTADO
+// ═══════════════════════════════════════════════════
+// tramos[i] = { pts:[{px,py,dist,label}], color, parentTi, parentPi }
+//   px,py      = coordenadas en el canvas (píxeles de la imagen original)
+//   dist       = metros al punto anterior (null si no ingresado)
+//   parentTi/parentPi = índice del tramo/punto del que parte este tramo (null = libre)
+let tramos   = [{pts:[], color:PALETTE[0], parentTi:null, parentPi:null}];
+let markers  = [];   // {px,py,type,label,lox,loy}  lox/loy = offset de etiqueta
+let selTramo = 0;
+let selPt    = -1;
+let mode     = 'draw';
+let zoom     = 1;
+let imgW=0, imgH=0;
+let history  = [];
+let mousePos = null;
+// Arrastre de etiquetas
+let lblDrag  = null;  // {target:'pt'|'mk', ti, pi, mi, startMx, startMy, origLox, origLoy}
+
+const canvas  = document.getElementById('mc');
+const ctx     = canvas.getContext('2d');
+const mapArea = document.getElementById('map-area');
+const tip     = document.getElementById('tip');
+const dpopup  = document.getElementById('dist-popup');
+const dpInp   = document.getElementById('dp-inp');
+const dSvg    = document.getElementById('diagram-svg');
+
+// ── Imagen ────────────────────────────────────
+const img = new Image();
+img.onload = ()=>{
+  imgW=img.naturalWidth; imgH=img.naturalHeight;
+  canvas.width=imgW; canvas.height=imgH;
+  fitZoom(); render();
+};
+img.onerror = ()=>{
+  imgW=1400; imgH=900; canvas.width=imgW; canvas.height=imgH;
+  ctx.fillStyle='#0D1117'; ctx.fillRect(0,0,imgW,imgH);
+  ctx.fillStyle='#F85149'; ctx.font='18px Arial'; ctx.textAlign='center';
+  ctx.fillText('mapa_nivel1640.png no encontrado',imgW/2,imgH/2-16);
+  ctx.fillText('Colócalo junto a este HTML',imgW/2,imgH/2+16);
+};
+img.src='mapa_nivel1640.png';
+
+// ══════════════════════════════════════════════
+//  RENDER CANVAS (mapa)
+// ══════════════════════════════════════════════
+function render(){
+  ctx.clearRect(0,0,imgW,imgH);
+  ctx.fillStyle='#0D1117'; ctx.fillRect(0,0,imgW,imgH);
+  if(img.complete&&img.naturalWidth){
+    ctx.globalAlpha=0.87; ctx.drawImage(img,0,0,imgW,imgH); ctx.globalAlpha=1;
+  }
+
+  // Dibujar conexiones entre tramos ramificados (línea punteada de unión)
+  tramos.forEach((tr,ti)=>{
+    if(tr.parentTi==null||!tr.pts.length) return;
+    const par=tramos[tr.parentTi];
+    if(!par||!par.pts[tr.parentPi]) return;
+    const a=par.pts[tr.parentPi], b=tr.pts[0];
+    if(Math.hypot(a.px-b.px,a.py-b.py)<3) return; // ya están encima
+    ctx.save();
+    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(a.px,a.py); ctx.lineTo(b.px,b.py); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+  });
+
+  tramos.forEach((tr,ti)=>{
+    if(!tr.pts.length) return;
+    const col=tr.color, isSel=(ti===selTramo);
+
+    // Línea del tramo
+    if(tr.pts.length>1){
+      ctx.save();
+      ctx.strokeStyle=col; ctx.lineWidth=isSel?3:2; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(tr.pts[0].px,tr.pts[0].py);
+      for(let i=1;i<tr.pts.length;i++) ctx.lineTo(tr.pts[i].px,tr.pts[i].py);
+      ctx.stroke(); ctx.restore();
+    }
+
+    // Resaltar punto snap bajo el mouse (cuando el tramo activo está vacío o en modo branch)
+    if(mousePos && (mode==='branch' || (mode==='draw' && tramos[selTramo].pts.length===0))){
+      tr.pts.forEach((p,pi)=>{
+        if(Math.hypot(p.px-mousePos.px,p.py-mousePos.py)<snapR()){
+          ctx.save();
+          ctx.strokeStyle='#F0E68C'; ctx.lineWidth=3;
+          ctx.beginPath(); ctx.arc(p.px,p.py,14,0,Math.PI*2); ctx.stroke();
+          ctx.restore();
+        }
+      });
+    }
+
+    // Línea viva hacia el mouse
+    if(isSel&&tr.pts.length&&mousePos&&mode==='draw'){
+      const L=tr.pts[tr.pts.length-1];
+      ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.setLineDash([7,5]);
+      ctx.beginPath(); ctx.moveTo(L.px,L.py); ctx.lineTo(mousePos.px,mousePos.py);
+      ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    }
+
+    // Etiquetas de distancia
+    for(let i=1;i<tr.pts.length;i++){
+      const a=tr.pts[i-1], b=tr.pts[i];
+      if(b.dist==null) continue;
+      const mx=(a.px+b.px)/2, my=(a.py+b.py)/2;
+      const txt=b.dist.toFixed(1)+'m';
+      ctx.font='bold 10px Segoe UI';
+      const tw=ctx.measureText(txt).width;
+      ctx.fillStyle='rgba(0,0,0,0.78)';
+      ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(mx-tw/2-3,my-11,tw+6,14,2);
+      else ctx.rect(mx-tw/2-3,my-11,tw+6,14);
+      ctx.fill();
+      ctx.fillStyle='#F0E68C'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(txt,mx,my-4);
+    }
+
+    // Puntos
+    tr.pts.forEach((p,pi)=>{
+      const isSP=(ti===selTramo&&pi===selPt);
+      ctx.save();
+      ctx.shadowColor=col; ctx.shadowBlur=isSP?16:6;
+      ctx.beginPath(); ctx.arc(p.px,p.py,isSP?9:6,0,Math.PI*2);
+      ctx.fillStyle=isSP?'#F0E68C':col;
+      ctx.strokeStyle='white'; ctx.lineWidth=2;
+      ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+      ctx.fillStyle=isSP?'#0D1117':'white';
+      ctx.font='bold 8px Segoe UI'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(pi+1,p.px,p.py);
+      if(p.label){
+        const lox=p.lox!=null?p.lox:10, loy=p.loy!=null?p.loy:0;
+        ctx.font='9px Segoe UI'; ctx.textAlign='left';
+        const tw2=ctx.measureText(p.label).width;
+        ctx.fillStyle='rgba(0,0,0,0.72)';
+        if(ctx.roundRect) ctx.roundRect(p.px+lox-2,p.py+loy-8,tw2+6,13,2);
+        else ctx.rect(p.px+lox-2,p.py+loy-8,tw2+6,13);
+        ctx.fill();
+        ctx.fillStyle=col; ctx.textBaseline='middle';
+        ctx.fillText(p.label,p.px+lox,p.py+loy);
+        // línea de conexión si está lejos
+        if(Math.hypot(lox,loy)>20){
+          ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=0.8; ctx.globalAlpha=0.5;
+          ctx.beginPath(); ctx.moveTo(p.px,p.py); ctx.lineTo(p.px+lox,p.py+loy);
+          ctx.stroke(); ctx.restore();
+        }
+      }
+      ctx.restore();
+    });
+  });
+
+  // Marcadores
+  markers.forEach(m=>{
+    const T=MK[m.type]; if(!T) return;
+    ctx.save(); ctx.shadowColor=T.color; ctx.shadowBlur=10;
+    drawShape(ctx,T.shape,m.px,m.py,10,T.color);
+    ctx.shadowBlur=0;
+    const lbl=m.label||T.label;
+    const lox=m.lox!=null?m.lox:14, loy=m.loy!=null?m.loy:0;
+    ctx.font='bold 10px Segoe UI';
+    const tw=ctx.measureText(lbl).width;
+    ctx.fillStyle='rgba(0,0,0,0.82)';
+    if(ctx.roundRect) ctx.roundRect(m.px+lox-2,m.py+loy-9,tw+8,16,3);
+    else ctx.rect(m.px+lox-2,m.py+loy-9,tw+8,16);
+    ctx.fill();
+    ctx.fillStyle=T.color; ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText(lbl,m.px+lox+2,m.py+loy);
+    if(Math.hypot(lox,loy)>20){
+      ctx.save(); ctx.strokeStyle=T.color; ctx.lineWidth=0.8; ctx.globalAlpha=0.5;
+      ctx.beginPath(); ctx.moveTo(m.px,m.py); ctx.lineTo(m.px+lox,m.py+loy);
+      ctx.stroke(); ctx.restore();
+    }
+    ctx.restore();
+  });
+
+  updateList();
+  updateMetrics();
+  renderDiagram();   // ← actualizar diagrama a escala
+}
+
+function drawShape(ctx,shape,x,y,r,color){
+  ctx.fillStyle=color; ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  switch(shape){
+    case 'diamond':
+      ctx.moveTo(x,y-r*1.3); ctx.lineTo(x+r,y); ctx.lineTo(x,y+r*1.3); ctx.lineTo(x-r,y); break;
+    case 'square':
+      ctx.rect(x-r*0.85,y-r*0.85,r*1.7,r*1.7); break;
+    case 'tri':
+      ctx.moveTo(x,y-r); ctx.lineTo(x+r*0.87,y+r*0.5); ctx.lineTo(x-r*0.87,y+r*0.5); break;
+    case 'hex':
+      for(let k=0;k<6;k++){const a=k*Math.PI/3-Math.PI/6;
+        k===0?ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r):ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}
+      break;
+    default: ctx.arc(x,y,r,0,Math.PI*2);
+  }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+}
+
+// ══════════════════════════════════════════════
+//  DIAGRAMA A ESCALA (SVG)
+//  Usa directamente px/py del canvas (geometría real del mapa)
+//  escalado para caber en el panel inferior.
+//  Las etiquetas de distancia vienen de dist ingresada por el usuario.
+// ══════════════════════════════════════════════
+function renderDiagram(){
+  const W=dSvg.clientWidth||800, H=dSvg.clientHeight||200;
+  while(dSvg.firstChild) dSvg.removeChild(dSvg.firstChild);
+  dSvg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'#0A1020'}));
+
+  // Recoger todos los puntos (px,py) de todos los tramos y marcadores
+  const allPts=[];
+  tramos.forEach(tr=>tr.pts.forEach(p=>allPts.push(p)));
+  markers.forEach(m=>allPts.push(m));
+  if(!allPts.length){
+    const t=svgEl('text',{x:W/2,y:H/2,'text-anchor':'middle',fill:'#30363D','font-size':'12','font-family':'Segoe UI'});
+    t.textContent='Traza puntos en el mapa para ver el diagrama'; dSvg.appendChild(t); return;
+  }
+
+  // Bounding box en coordenadas de canvas (px)
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  allPts.forEach(p=>{
+    minX=Math.min(minX,p.px); maxX=Math.max(maxX,p.px);
+    minY=Math.min(minY,p.py); maxY=Math.max(maxY,p.py);
+  });
+
+  const PAD=40;
+  const rX=maxX-minX||1, rY=maxY-minY||1;
+  const sc=Math.min((W-PAD*2)/rX, (H-PAD*2)/rY);
+  // Función de mapeo: px/py canvas → coordenadas SVG del diagrama
+  function dx(x){ return (x-minX)*sc+PAD; }
+  function dy(y){ return (y-minY)*sc+PAD; }
+
+  // Grilla ligera
+  const gridPx = niceStep(Math.max(rX,rY)/6);  // en píxeles del canvas
+  for(let gx=Math.floor(minX/gridPx)*gridPx; gx<=maxX+gridPx; gx+=gridPx){
+    const sx=dx(gx); if(sx<0||sx>W) continue;
+    dSvg.appendChild(svgEl('line',{x1:sx,y1:0,x2:sx,y2:H,stroke:'#1A2535','stroke-width':'0.8'}));
+  }
+  for(let gy=Math.floor(minY/gridPx)*gridPx; gy<=maxY+gridPx; gy+=gridPx){
+    const sy=dy(gy); if(sy<0||sy>H) continue;
+    dSvg.appendChild(svgEl('line',{x1:0,y1:sy,x2:W,y2:sy,stroke:'#1A2535','stroke-width':'0.8'}));
+  }
+
+  // Dibujar tramos
+  tramos.forEach((tr,ti)=>{
+    if(tr.pts.length<2) return;
+    const col=tr.color;
+    // Polilínea
+    const d=tr.pts.map((p,i)=>`${i===0?'M':'L'}${dx(p.px).toFixed(1)},${dy(p.py).toFixed(1)}`).join(' ');
+    dSvg.appendChild(svgEl('path',{d,stroke:col,'stroke-width':'2.5',fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
+
+    // Etiquetas de distancia en el centro de cada segmento
+    for(let i=1;i<tr.pts.length;i++){
+      const a=tr.pts[i-1], b=tr.pts[i];
+      if(b.dist==null) continue;
+      const mx=(dx(a.px)+dx(b.px))/2, my=(dy(a.py)+dy(b.py))/2;
+      const txt=b.dist.toFixed(1)+'m';
+      const tw=txt.length*5.5;
+      dSvg.appendChild(svgEl('rect',{x:mx-tw/2-3,y:my-10,width:tw+6,height:14,fill:'rgba(0,0,0,0.75)',rx:'3'}));
+      const dt=svgEl('text',{x:mx,y:my-1,'text-anchor':'middle','font-size':'9',
+        fill:'#F0E68C','font-weight':'bold','font-family':'Segoe UI'});
+      dt.textContent=txt; dSvg.appendChild(dt);
+    }
+
+    // Puntos
+    tr.pts.forEach((p,pi)=>{
+      const sx=dx(p.px), sy=dy(p.py);
+      dSvg.appendChild(svgEl('circle',{cx:sx,cy:sy,r:'5',fill:col,stroke:'white','stroke-width':'1.5'}));
+      const nt=svgEl('text',{x:sx,y:sy+1,'text-anchor':'middle','dominant-baseline':'middle',
+        fill:'#0D1117','font-size':'7','font-weight':'bold','font-family':'Segoe UI'});
+      nt.textContent=pi+1; dSvg.appendChild(nt);
+      if(p.label){
+        const lt=svgEl('text',{x:sx+8,y:sy-7,'font-size':'9',fill:col,'font-family':'Segoe UI'});
+        lt.textContent=p.label; dSvg.appendChild(lt);
+      }
+    });
+  });
+
+  // Marcadores sobre el diagrama (posición directa px/py)
+  markers.forEach(m=>{
+    const T=MK[m.type]; if(!T) return;
+    const sx=dx(m.px), sy=dy(m.py);
+    dSvg.appendChild(svgEl('circle',{cx:sx,cy:sy,r:'6',fill:T.color,stroke:'white','stroke-width':'1.5'}));
+    const lt=svgEl('text',{x:sx+9,y:sy-6,'font-size':'9',fill:T.color,'font-family':'Segoe UI','font-weight':'bold'});
+    lt.textContent=m.label||T.label; dSvg.appendChild(lt);
+  });
+
+  // Leyenda de tramos
+  tramos.forEach((tr,ti)=>{
+    if(!tr.pts.length) return;
+    const lx=8, ly=14+ti*14;
+    dSvg.appendChild(svgEl('line',{x1:lx,y1:ly,x2:lx+18,y2:ly,stroke:tr.color,'stroke-width':'2.5'}));
+    const lt=svgEl('text',{x:lx+22,y:ly+1,'font-size':'9',fill:tr.color,'font-family':'Segoe UI','dominant-baseline':'middle'});
+    lt.textContent=`Tramo ${ti+1}`; dSvg.appendChild(lt);
+  });
+}
+
+function svgEl(tag,attrs){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));
+  return el;
+}
+function niceStep(v){
+  const e=Math.pow(10,Math.floor(Math.log10(v)));
+  const f=v/e;
+  return (f<2?1:f<5?2:5)*e;
+}
+function projOnSeg(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy;
+  if(len2===0) return {t:0,d:Math.hypot(px-ax,py-ay)};
+  let t=((px-ax)*dx+(py-ay)*dy)/len2;
+  t=Math.max(0,Math.min(1,t));
+  const qx=ax+t*dx,qy=ay+t*dy;
+  return {t,d:Math.hypot(px-qx,py-qy)};
+}
+function ctx2d_grid(svg,minX,maxX,minY,maxY,step,sc,offX,offY,W,H){
+  const start=Math.floor(minX/step)*step;
+  for(let gx=start;gx<=maxX+step;gx+=step){
+    const x=gx*sc+offX;
+    if(x<0||x>W) continue;
+    svg.appendChild(svgEl('line',{x1:x,y1:0,x2:x,y2:H,stroke:'#21262D','stroke-width':'0.5'}));
+    const t=svgEl('text',{x:x+2,y:H-2,'font-size':'7',fill:'#30363D','font-family':'Segoe UI'});
+    t.textContent=gx+'m'; svg.appendChild(t);
+  }
+  const startY=Math.floor(minY/step)*step;
+  for(let gy=startY;gy<=maxY+step;gy+=step){
+    const y=gy*sc+offY;
+    if(y<0||y>H) continue;
+    svg.appendChild(svgEl('line',{x1:0,y1:y,x2:W,y2:y,stroke:'#21262D','stroke-width':'0.5'}));
+    const t=svgEl('text',{x:2,y:y-2,'font-size':'7',fill:'#30363D','font-family':'Segoe UI'});
+    t.textContent=gy+'m'; svg.appendChild(t);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  POPUP DISTANCIA
+// ══════════════════════════════════════════════
+function showDistPopup(screenX,screenY,fromL,toL,cb){
+  dpopup.style.display='block';
+  let left=screenX+20, top=screenY-20;
+  if(left+240>window.innerWidth) left=screenX-255;
+  if(top+110>window.innerHeight) top=window.innerHeight-115;
+  dpopup.style.left=left+'px'; dpopup.style.top=top+'px';
+  document.getElementById('dp-title').textContent=`Distancia: ${fromL} → ${toL}`;
+  dpInp.value=''; setTimeout(()=>dpInp.focus(),30);
+
+  const cleanup=()=>{
+    document.getElementById('dist-ok').onclick=null;
+    document.getElementById('dist-skip').onclick=null;
+    document.removeEventListener('keydown',kh);
+  };
+  const ok=()=>{
+    const v=parseFloat(dpInp.value);
+    dpopup.style.display='none'; cleanup();
+    cb(isNaN(v)||v<=0?null:v);
+  };
+  const skip=()=>{ dpopup.style.display='none'; cleanup(); cb(null); };
+  const kh=(e)=>{ if(e.key==='Enter'){e.preventDefault();ok();}
+                  if(e.key==='Escape'){e.preventDefault();skip();} };
+  document.getElementById('dist-ok').onclick=ok;
+  document.getElementById('dist-skip').onclick=skip;
+  document.addEventListener('keydown',kh);
+}
+
+// ══════════════════════════════════════════════
+//  EVENTOS CANVAS
+// ══════════════════════════════════════════════
+canvas.addEventListener('click',e=>{
+  if(dpopup.style.display==='block') return;
+  const {px,py}=cp(e);
+
+  // Modo ramificar
+  if(mode==='branch'){
+    if(!handleBranchClick(px,py))
+      document.getElementById('mode-lbl').textContent='🔗 Haz clic SOBRE un punto existente (círculo)';
+    return;
+  }
+
+  // Modo marcador
+  if(mode.startsWith('marker:')){
+    const mtype=mode.split(':')[1];
+    const T=MK[mtype];
+    const defL=`${T.label} ${markers.filter(m=>m.type===mtype).length+1}`;
+    const lbl=prompt(`Etiqueta para ${T.label}:`,defL);
+    if(lbl===null) return;
+    push(); markers.push({px,py,type:mtype,label:lbl||defL});
+    render(); return;
+  }
+
+  // Modo draw
+  const tr=tramos[selTramo];
+  push();
+
+  if(tr.pts.length===0){
+    // Buscar punto existente cercano para hacer snap (conectar tramos)
+    let snapTi=null, snapPi=null;
+    outer2: for(let ti=0;ti<tramos.length;ti++){
+      if(ti===selTramo) continue;
+      for(let pi=0;pi<tramos[ti].pts.length;pi++){
+        const p=tramos[ti].pts[pi];
+        if(Math.hypot(p.px-px,p.py-py)<snapR()){
+          snapTi=ti; snapPi=pi; break outer2;
+        }
+      }
+    }
+    if(snapTi!==null){
+      // Conectar al punto existente — copiar sus coordenadas exactas
+      const snapPt=tramos[snapTi].pts[snapPi];
+      tr.pts.push({px:snapPt.px,py:snapPt.py,dist:null,label:snapPt.label||null});
+      tr.parentTi=snapTi; tr.parentPi=snapPi;
+    } else {
+      const lbl=prompt('Etiqueta del punto de inicio (Enter para omitir):','Inicio');
+      tr.pts.push({px,py,dist:null,label:lbl||null});
+    }
+    selPt=0; render(); return;
+  }
+
+  const prev=tr.pts[tr.pts.length-1];
+  const fromL=prev.label||`P${tr.pts.length}`;
+  const toIdx=tr.pts.length+1;
+  const newPt={px,py,dist:null,label:null};
+  tr.pts.push(newPt); selPt=tr.pts.length-1;
+  render();
+
+  showDistPopup(e.clientX,e.clientY,fromL,`P${toIdx}`,(dist)=>{
+    newPt.dist=dist;
+    const lbl=prompt('Etiqueta para este punto (opcional, Enter omite):','');
+    newPt.label=lbl||null;
+    render();
+  });
+});
+
+canvas.addEventListener('dblclick',e=>{
+  if(dpopup.style.display==='block') return;
+  const {px,py}=cp(e);
+  // Editar marcador
+  for(let i=markers.length-1;i>=0;i--){
+    if(Math.hypot(markers[i].px-px,markers[i].py-py)<snapR()){
+      const lbl=prompt('Editar etiqueta:',markers[i].label||'');
+      if(lbl!==null){push();markers[i].label=lbl;render();}
+      return;
+    }
+  }
+  // Editar punto de tramo
+  for(let ti=0;ti<tramos.length;ti++){
+    for(let pi=0;pi<tramos[ti].pts.length;pi++){
+      const p=tramos[ti].pts[pi];
+      if(Math.hypot(p.px-px,p.py-py)<snapR()){
+        selTramo=ti; selPt=pi;
+        const resp=prompt(
+          `Punto ${pi+1} — Tramo ${ti+1}\n`+
+          `Etiqueta actual: ${p.label||'(ninguna)'}\n`+
+          `Distancia al anterior: ${p.dist!=null?p.dist+'m':'(sin medida)'}\n\n`+
+          `Escribe nueva etiqueta, o "dist=45.5" para corregir distancia:`,
+          p.label||'');
+        if(resp===null){render();return;}
+        push();
+        if(/^dist=/i.test(resp)){
+          const v=parseFloat(resp.split('=')[1]);
+          if(!isNaN(v)&&v>0) p.dist=v;
+        } else { p.label=resp||null; }
+        render(); return;
+      }
+    }
+  }
+});
+
+// ── Arrastre de etiquetas ─────────────────────
+canvas.addEventListener('mousedown',e=>{
+  if(dpopup.style.display==='block') return;
+  const {px,py}=cp(e);
+  // Buscar etiqueta de marcador bajo el mouse
+  for(let mi=markers.length-1;mi>=0;mi--){
+    const m=markers[mi];
+    const T=MK[m.type]; if(!T) continue;
+    const lox=m.lox!=null?m.lox:14, loy=m.loy!=null?m.loy:0;
+    const lbl=m.label||T.label;
+    const tw=(lbl.length*6)+10;
+    if(px>=m.px+lox-4&&px<=m.px+lox+tw&&py>=m.py+loy-12&&py<=m.py+loy+6){
+      lblDrag={target:'mk',mi,startPx:px,startPy:py,origLox:lox,origLoy:loy};
+      e.stopPropagation(); return;
+    }
+  }
+  // Buscar etiqueta de punto de tramo bajo el mouse
+  for(let ti=0;ti<tramos.length;ti++){
+    for(let pi=0;pi<tramos[ti].pts.length;pi++){
+      const p=tramos[ti].pts[pi];
+      if(!p.label) continue;
+      const lox=p.lox!=null?p.lox:10, loy=p.loy!=null?p.loy:0;
+      const tw=(p.label.length*5.5)+8;
+      if(px>=p.px+lox-4&&px<=p.px+lox+tw&&py>=p.py+loy-12&&py<=p.py+loy+6){
+        lblDrag={target:'pt',ti,pi,startPx:px,startPy:py,origLox:lox,origLoy:loy};
+        e.stopPropagation(); return;
+      }
+    }
+  }
+});
+
+canvas.addEventListener('mouseup',()=>{ lblDrag=null; });
+
+canvas.addEventListener('mousemove',e=>{
+  const {px,py}=cp(e);
+  mousePos={px,py};
+  // Arrastrar etiqueta
+  if(lblDrag){
+    const dx=px-lblDrag.startPx, dy=py-lblDrag.startPy;
+    if(lblDrag.target==='mk'){
+      markers[lblDrag.mi].lox=lblDrag.origLox+dx;
+      markers[lblDrag.mi].loy=lblDrag.origLoy+dy;
+    } else {
+      tramos[lblDrag.ti].pts[lblDrag.pi].lox=lblDrag.origLox+dx;
+      tramos[lblDrag.ti].pts[lblDrag.pi].loy=lblDrag.origLoy+dy;
+    }
+    render(); return;
+  }
+  document.getElementById('coord-lbl').textContent=`x:${px.toFixed(0)} y:${py.toFixed(0)}`;
+
+  let lines=null;
+  for(let i=markers.length-1;i>=0;i--){
+    if(Math.hypot(markers[i].px-px,markers[i].py-py)<snapR()){
+      const T=MK[markers[i].type];
+      lines=`${T.icon} ${markers[i].label||T.label}\n${T.label}`;
+      break;
+    }
+  }
+  if(!lines){
+    outer: for(let ti=0;ti<tramos.length;ti++){
+      for(let pi=0;pi<tramos[ti].pts.length;pi++){
+        const p=tramos[ti].pts[pi];
+        if(Math.hypot(p.px-px,p.py-py)<snapR()){
+          lines=`Tramo ${ti+1} · Pto ${pi+1}${p.label?'\n'+p.label:''}`;
+          if(p.dist!=null) lines+=`\nDist al anterior: ${p.dist.toFixed(2)} m`;
+          let cum=0,ok=true;
+          for(let k=1;k<=pi;k++){
+            const d=tramos[ti].pts[k].dist;
+            if(d==null){ok=false;break;} cum+=d;
+          }
+          if(ok) lines+=`\nAcum: ${cum.toFixed(2)} m`;
+          break outer;
+        }
+      }
+    }
+  }
+  if(lines){
+    tip.textContent=lines; tip.style.display='block';
+    tip.style.left=(e.clientX+16)+'px'; tip.style.top=(e.clientY+16)+'px';
+  } else tip.style.display='none';
+
+  // Cursor: mostrar 'grab' si está sobre una etiqueta
+  let overLabel=false;
+  for(const m of markers){
+    const T=MK[m.type]; if(!T) continue;
+    const lox=m.lox!=null?m.lox:14, loy=m.loy!=null?m.loy:0;
+    const tw=((m.label||T.label).length*6)+10;
+    if(px>=m.px+lox-4&&px<=m.px+lox+tw&&py>=m.py+loy-12&&py<=m.py+loy+6){overLabel=true;break;}
+  }
+  if(!overLabel) for(const tr of tramos) for(const p of tr.pts){
+    if(!p.label) continue;
+    const lox=p.lox!=null?p.lox:10, loy=p.loy!=null?p.loy:0;
+    const tw=(p.label.length*5.5)+8;
+    if(px>=p.px+lox-4&&px<=p.px+lox+tw&&py>=p.py+loy-12&&py<=p.py+loy+6){overLabel=true;break;}
+  }
+  canvas.style.cursor = lblDrag ? 'grabbing' : overLabel ? 'grab' : 'crosshair';
+
+  render();
+});
+canvas.addEventListener('mouseleave',()=>{ mousePos=null; lblDrag=null; tip.style.display='none'; render(); });
+
+// ══════════════════════════════════════════════
+//  BOTONES DE MODO
+// ══════════════════════════════════════════════
+document.getElementById('bt-draw').addEventListener('click',()=>setMode('draw'));
+Object.keys(MK).forEach(t=>{
+  const btn=document.getElementById('mk-'+t);
+  if(btn) btn.addEventListener('click',()=>setMode('marker:'+t));
+});
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.btn,.mk-btn').forEach(b=>b.classList.remove('active'));
+  if(m==='draw') document.getElementById('bt-draw').classList.add('active');
+  else { const btn=document.getElementById('mk-'+m.split(':')[1]); if(btn) btn.classList.add('active'); }
+  const T=MK[m.split(':')[1]];
+  document.getElementById('mode-lbl').textContent=
+    m==='branch' ? 'Modo: 🔗 Ramificar — clic sobre un punto existente'
+    : T ? `Modo: ${T.icon} ${T.label} — clic en mapa`
+    : 'Modo: 📐 Trazar y medir';
+}
+
+document.getElementById('bt-break').addEventListener('click',()=>{
+  // Recoger todos los puntos existentes para mostrar al usuario
+  const opciones = [];
+  tramos.forEach((tr,ti)=>{
+    tr.pts.forEach((p,pi)=>{
+      opciones.push({ti, pi, label: p.label||`T${ti+1}-P${pi+1}`, p});
+    });
+  });
+
+  let origenTi=null, origenPi=null, origenPt=null;
+
+  if(opciones.length>0){
+    // Construir texto de opciones numeradas
+    let msg='¿Desde qué punto quieres iniciar el nuevo tramo?\n\n';
+    opciones.forEach((o,i)=> msg+=`${i+1}. ${o.label} (Tramo ${o.ti+1}, Pto ${o.pi+1})\n`);
+    msg+=`\n0. Punto nuevo (clic libre en el mapa)`;
+    const resp=prompt(msg,'0');
+    if(resp===null) return; // cancelado
+    const n=parseInt(resp);
+    if(n>=1 && n<=opciones.length){
+      const sel=opciones[n-1];
+      origenTi=sel.ti; origenPi=sel.pi; origenPt=sel.p;
+    }
+  }
+
+  push();
+  const col=PALETTE[tramos.length%PALETTE.length];
+  const nuevoPts = origenPt
+    ? [{px:origenPt.px, py:origenPt.py, dist:null, label:origenPt.label||null}]
+    : [];
+  tramos.push({pts:nuevoPts, color:col, parentTi:origenTi, parentPi:origenPi});
+  selTramo=tramos.length-1; selPt=nuevoPts.length-1;
+  render();
+});
+
+document.getElementById('bt-connect').addEventListener('click',()=>{
+  const opciones=[];
+  tramos.forEach((tr,ti)=>tr.pts.forEach((p,pi)=>{
+    opciones.push({ti,pi,p,label:p.label||`T${ti+1}-P${pi+1}`});
+  }));
+  if(opciones.length<2){alert('Necesitas al menos 2 puntos en el mapa');return;}
+
+  const lista=opciones.map((o,i)=>`${i+1}. ${o.label} (Tramo ${o.ti+1}, Pto ${o.pi+1})`).join('\n');
+
+  const r1=prompt(`ORIGEN — elige número:\n\n${lista}`,'1');
+  if(r1===null) return;
+  const n1=parseInt(r1)-1;
+  if(isNaN(n1)||n1<0||n1>=opciones.length){alert('Número inválido');return;}
+
+  const r2=prompt(`DESTINO — elige número:\n\n${lista}`,'2');
+  if(r2===null) return;
+  const n2=parseInt(r2)-1;
+  if(isNaN(n2)||n2<0||n2>=opciones.length||n1===n2){alert('Número inválido o igual al origen');return;}
+
+  const A=opciones[n1], B=opciones[n2];
+  const distStr=prompt(`Distancia "${A.label}" → "${B.label}" en metros:`,'');
+  if(distStr===null) return;
+  const dist=parseFloat(distStr);
+  if(isNaN(dist)||dist<=0){alert('Distancia inválida');return;}
+
+  push();
+  const col=PALETTE[tramos.length%PALETTE.length];
+  tramos.push({
+    pts:[
+      {px:A.p.px, py:A.p.py, dist:null, label:A.p.label||null},
+      {px:B.p.px, py:B.p.py, dist:dist, label:B.p.label||null},
+    ],
+    color:col,
+    parentTi:A.ti, parentPi:A.pi,
+  });
+  selTramo=tramos.length-1; selPt=1;
+  render();
+});
+
+// Modo branch: el siguiente clic debe ser sobre un punto existente para ramificar desde él
+function handleBranchClick(px,py){
+  for(let ti=0;ti<tramos.length;ti++){
+    for(let pi=0;pi<tramos[ti].pts.length;pi++){
+      const p=tramos[ti].pts[pi];
+      if(Math.hypot(p.px-px,p.py-py)<snapR()){
+        push();
+        const col=PALETTE[tramos.length%PALETTE.length];
+        tramos.push({
+          pts:[{px:p.px,py:p.py,dist:null,label:p.label||null}],
+          color:col, parentTi:ti, parentPi:pi
+        });
+        selTramo=tramos.length-1; selPt=0;
+        setMode('draw');
+        render();
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// ══════════════════════════════════════════════
+//  LISTA Y MÉTRICAS
+// ══════════════════════════════════════════════
+function updateList(){
+  const el=document.getElementById('pt-list');
+  const rows=[];
+  tramos.forEach((tr,ti)=>{
+    if(!tr.pts.length) return;
+    rows.push(`<div style="color:${tr.color};font-weight:bold;padding:3px 2px;font-size:10px;">— Tramo ${ti+1} —</div>`);
+    tr.pts.forEach((p,pi)=>{
+      const isSel=(ti===selTramo&&pi===selPt);
+      rows.push(`<div class="pt-row${isSel?' sel':''}" data-ti="${ti}" data-pi="${pi}">
+        <div class="pt-n">${pi+1}</div>
+        <div class="pt-lb" style="color:${tr.color}">${p.label||'pto '+(pi+1)}</div>
+        <div class="pt-d">${p.dist!=null?p.dist.toFixed(2)+'m':'—'}</div>
+        <div class="pt-del" data-dti="${ti}" data-dpi="${pi}">✕</div>
+      </div>`);
+    });
+  });
+  if(markers.length){
+    rows.push(`<div style="color:#8B949E;font-weight:bold;padding:3px 2px;font-size:10px;">— Marcadores —</div>`);
+    markers.forEach((m,mi)=>{
+      const T=MK[m.type];
+      rows.push(`<div class="pt-row">
+        <div class="pt-lb" style="color:${T.color}">${T.icon} ${m.label||T.label}</div>
+        <div class="pt-del" data-dmi="${mi}">✕</div>
+      </div>`);
+    });
+  }
+  if(!rows.length){el.innerHTML='<div style="color:#8B949E;padding:3px;">Sin puntos aún</div>';return;}
+  el.innerHTML=rows.join('');
+  el.querySelectorAll('.pt-row[data-ti]').forEach(row=>{
+    row.addEventListener('click',e=>{
+      if(e.target.dataset.dti!=null) return;
+      selTramo=parseInt(row.dataset.ti); selPt=parseInt(row.dataset.pi); render();
+    });
+  });
+  el.querySelectorAll('[data-dti]').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation(); push();
+      const ti=parseInt(btn.dataset.dti),pi=parseInt(btn.dataset.dpi);
+      tramos[ti].pts.splice(pi,1);
+      if(!tramos[ti].pts.length&&tramos.length>1) tramos.splice(ti,1);
+      selPt=-1; render();
+    });
+  });
+  el.querySelectorAll('[data-dmi]').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation(); push(); markers.splice(parseInt(btn.dataset.dmi),1); render();
+    });
+  });
+}
+
+function updateMetrics(){
+  const el=document.getElementById('metrics');
+  let html='', grand=0;
+  tramos.forEach((tr,ti)=>{
+    if(!tr.pts.length) return;
+    let tot=0, miss=0;
+    for(let i=1;i<tr.pts.length;i++) tr.pts[i].dist!=null?tot+=tr.pts[i].dist:miss++;
+    grand+=tot;
+    html+=`<div><b style="color:${tr.color}">Tramo ${ti+1}:</b> <span style="color:#F0E68C;font-weight:bold">${tot.toFixed(2)}m${miss?` (+${miss} sin medida)`:''}</span></div>`;
+    for(let i=1;i<tr.pts.length;i++){
+      const p=tr.pts[i],pv=tr.pts[i-1];
+      html+=`<div style="padding-left:8px;color:#8B949E;">${pv.label||`P${i}`}→${p.label||`P${i+1}`}: <span style="color:#F0E68C">${p.dist!=null?p.dist.toFixed(2)+'m':'—'}</span></div>`;
+    }
+  });
+  if(tramos.filter(t=>t.pts.length).length>1)
+    html+=`<div style="margin-top:3px"><b>TOTAL:</b> <span style="color:#F0E68C;font-weight:bold">${grand.toFixed(2)} m</span></div>`;
+  el.innerHTML=html||'<div style="color:#8B949E;">Traza segmentos para ver distancias</div>';
+}
+
+// ══════════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════════
+document.getElementById('bt-exp').addEventListener('click',()=>{
+  let o='// ════════════════════════════════════════════\n';
+  o+='// Mediciones reales — Nivel 1640 Nexa Cerro Lindo\n// map_annotator.html\n';
+  o+='// ════════════════════════════════════════════\n\n';
+
+  tramos.forEach((tr,ti)=>{
+    if(!tr.pts.length) return;
+    const conn=tr.parentTi!=null?` [desde Tramo ${tr.parentTi+1} Pto ${tr.parentPi+1}]`:'';
+    o+=`// ── Tramo ${ti+1}${conn} ─────────────────────────────\n`;
+    let cum=0;
+    tr.pts.forEach((p,pi)=>{
+      if(pi>0&&p.dist!=null) cum+=p.dist;
+      const lbl=p.label||`P${pi+1}`;
+      const extra=pi>0?(p.dist!=null?` (+${p.dist.toFixed(2)} m)`:'  (sin medida)'):'  [inicio]';
+      const coord=`  px=${p.px.toFixed(0)}, py=${p.py.toFixed(0)}`;
+      o+=`// [${cum.toFixed(2).padStart(8)} m]  ${lbl.padEnd(18)}${extra}${coord}\n`;
+    });
+    const segs=tr.pts.slice(1).map(p=>p.dist!=null?p.dist.toFixed(2):'null');
+    o+=`double TRAMO_${ti+1}[] = { ${segs.join(', ')} };  // metros por segmento\n\n`;
+  });
+
+  if(markers.length){
+    o+=`// ── Marcadores ─────────────────────────────\n`;
+    Object.keys(MK).forEach(t=>{
+      const ms=markers.filter(m=>m.type===t);
+      if(!ms.length) return;
+      o+=`// ${MK[t].label}:\n`;
+      ms.forEach(m=>o+=`//   "${m.label||MK[t].label}"  px=${m.px.toFixed(0)}, py=${m.py.toFixed(0)}\n`);
+    });
+  }
+
+  const box=document.getElementById('export-box');
+  box.textContent=o; box.style.display='block';
+  document.getElementById('bt-copy').style.display='block';
+});
+document.getElementById('bt-copy').addEventListener('click',()=>{
+  navigator.clipboard.writeText(document.getElementById('export-box').textContent)
+    .then(()=>{ document.getElementById('bt-copy').textContent='✓ Copiado'; });
+});
+
+document.getElementById('bt-png').addEventListener('click',()=>{
+  // Serializar el SVG y convertir a PNG via canvas offscreen
+  const svg=document.getElementById('diagram-svg');
+  const W=svg.clientWidth||900, H=svg.clientHeight||220;
+  const serializer=new XMLSerializer();
+  const svgStr=serializer.serializeToString(svg);
+  const blob=new Blob([svgStr],{type:'image/svg+xml'});
+  const url=URL.createObjectURL(blob);
+  const tmpImg=new Image();
+  tmpImg.onload=()=>{
+    const c=document.createElement('canvas');
+    c.width=W*2; c.height=H*2;  // x2 para mejor resolución
+    const cx2=c.getContext('2d');
+    cx2.scale(2,2);
+    cx2.drawImage(tmpImg,0,0);
+    URL.revokeObjectURL(url);
+    const a=document.createElement('a');
+    a.download='diagrama_nivel1640.png';
+    a.href=c.toDataURL('image/png');
+    a.click();
+  };
+  tmpImg.src=url;
+});
+
+// ══════════════════════════════════════════════
+//  GUARDAR / CARGAR / UNDO
+// ══════════════════════════════════════════════
+document.getElementById('bt-save').addEventListener('click',()=>{
+  localStorage.setItem('map1640v3',JSON.stringify({tramos,markers,selTramo}));
+  alert('Guardado ✓');
+});
+document.getElementById('bt-load').addEventListener('click',()=>{
+  const r=localStorage.getItem('map1640v3');
+  if(!r){alert('No hay datos guardados');return;}
+  const d=JSON.parse(r);
+  tramos=d.tramos; markers=d.markers||[]; selTramo=d.selTramo||0; selPt=-1;
+  render();
+});
+function push(){
+  history.push(JSON.parse(JSON.stringify({tramos,markers,selTramo,selPt})));
+  if(history.length>60) history.shift();
+}
+function undo(){
+  if(!history.length) return;
+  const s=history.pop(); tramos=s.tramos; markers=s.markers; selTramo=s.selTramo; selPt=s.selPt;
+  render();
+}
+document.getElementById('bt-undo').addEventListener('click',undo);
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo();}
+});
+document.getElementById('bt-clr').addEventListener('click',()=>{
+  if(!confirm('¿Borrar todo?')) return;
+  push(); tramos=[{pts:[],color:PALETTE[0]}]; markers=[];
+  selTramo=0; selPt=-1; render();
+});
+
+// ══════════════════════════════════════════════
+//  ZOOM
+// ══════════════════════════════════════════════
+function applyZoom(){
+  canvas.style.transform=`scale(${zoom})`;
+  canvas.style.transformOrigin='0 0';
+  document.getElementById('zoom-lbl').textContent=Math.round(zoom*100)+'%';
+}
+function setZoom(z){ zoom=Math.max(0.1,Math.min(8,z)); applyZoom(); }
+function fitZoom(){
+  zoom=Math.min(mapArea.clientWidth/imgW, mapArea.clientHeight/imgH)*0.95;
+  applyZoom();
+}
+document.getElementById('tb-zi').addEventListener('click',()=>setZoom(zoom+0.2));
+document.getElementById('tb-zo').addEventListener('click',()=>setZoom(zoom-0.2));
+document.getElementById('tb-z1').addEventListener('click',()=>setZoom(1));
+document.getElementById('tb-zfit').addEventListener('click',fitZoom);
+mapArea.addEventListener('wheel',e=>{
+  e.preventDefault(); setZoom(zoom+(e.deltaY<0?.12:-.12));
+},{passive:false});
+
+function cp(e){
+  const r=canvas.getBoundingClientRect();
+  return {px:(e.clientX-r.left)/zoom, py:(e.clientY-r.top)/zoom};
+}
+// Radio de detección constante en pantalla (24px), convertido a coords de imagen
+function snapR(){ return 24/zoom; }
+
+setMode('draw');
+
+document.getElementById('bt-more-mk').addEventListener('click',()=>{
+  const el=document.getElementById('mk-extra');
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  document.getElementById('bt-more-mk').textContent=open?'▼ Más elementos...':'▲ Menos';
+});
+</script>
+</body>
+</html>

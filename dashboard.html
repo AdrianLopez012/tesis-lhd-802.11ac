@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Tesis LHD Teleop | Adrián López 20192733</title>
+<style>
+  :root {
+    --verde:   #2e7d32;
+    --verde-l: #e8f5e9;
+    --ambar:   #f57f17;
+    --ambar-l: #fff8e1;
+    --rojo:    #c62828;
+    --rojo-l:  #ffebee;
+    --azul:    #1565c0;
+    --azul-l:  #e3f2fd;
+    --gris:    #455a64;
+    --bg:      #f5f7fa;
+    --card:    #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #263238; font-size: 14px; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #1a237e 0%, #1565c0 100%);
+    color: white; padding: 18px 28px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header p  { font-size: 12px; opacity: 0.85; margin-top: 3px; }
+  .badge-version {
+    background: rgba(255,255,255,0.2); border-radius: 20px;
+    padding: 6px 16px; font-size: 13px; font-weight: 600;
+  }
+
+  /* LAYOUT */
+  .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 20px; }
+
+  /* CARDS */
+  .card {
+    background: var(--card); border-radius: 10px;
+    padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .card h2 {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--gris); margin-bottom: 14px;
+    padding-bottom: 8px; border-bottom: 2px solid #eceff1;
+  }
+
+  /* KPI METRIC BOXES */
+  .metric {
+    text-align: center; padding: 14px 10px; border-radius: 8px;
+    border: 1px solid #e0e0e0;
+  }
+  .metric .val { font-size: 26px; font-weight: 800; line-height: 1; }
+  .metric .lbl { font-size: 11px; color: #78909c; margin-top: 4px; }
+  .metric .thr { font-size: 10px; margin-top: 3px; font-weight: 600; }
+  .ok   { background: var(--verde-l); border-color: #a5d6a7; }
+  .ok .val { color: var(--verde); }
+  .ok .thr { color: var(--verde); }
+  .warn { background: var(--ambar-l); border-color: #ffe082; }
+  .warn .val { color: var(--ambar); }
+  .warn .thr { color: var(--ambar); }
+  .fail { background: var(--rojo-l);  border-color: #ef9a9a; }
+  .fail .val { color: var(--rojo); }
+  .fail .thr { color: var(--rojo); }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin-bottom: 12px; }
+  .progress-label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; }
+  .progress-label span:last-child { font-weight: 700; }
+  .bar-bg { height: 10px; background: #eceff1; border-radius: 5px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s; }
+  .bar-verde  { background: var(--verde); }
+  .bar-ambar  { background: var(--ambar); }
+  .bar-rojo   { background: var(--rojo); }
+  .bar-azul   { background: var(--azul); }
+
+  /* CHECKLIST */
+  .check-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .check-item .sub { font-size: 11px; color: #90a4ae; margin-top: 2px; }
+
+  /* TABLA KPI ESCENARIOS */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #eceff1; padding: 8px 10px; text-align: left; font-weight: 700; color: var(--gris); }
+  td { padding: 7px 10px; border-bottom: 1px solid #f5f5f5; }
+  tr:hover td { background: #fafafa; }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 700;
+  }
+  .tag-ok   { background: var(--verde-l); color: var(--verde); }
+  .tag-warn { background: var(--ambar-l); color: var(--ambar); }
+  .tag-fail { background: var(--rojo-l);  color: var(--rojo);  }
+  .tag-na   { background: #f5f5f5; color: #90a4ae; }
+
+  /* MEJORAS */
+  .mejora {
+    padding: 10px 12px; border-radius: 7px; margin-bottom: 8px;
+    border-left: 4px solid;
+  }
+  .mejora h4 { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .mejora p  { font-size: 12px; color: #546e7a; }
+  .mejora-alta  { background: #fff8e1; border-color: var(--ambar); }
+  .mejora-media { background: #e8f5e9; border-color: var(--verde); }
+  .mejora-baja  { background: #e3f2fd; border-color: var(--azul);  }
+
+  /* LIMITACIONES */
+  .limit-item {
+    padding: 8px 12px; border-radius: 6px; margin-bottom: 7px;
+    background: #fff3e0; border-left: 3px solid #fb8c00; font-size: 12px;
+  }
+  .limit-item strong { display: block; font-size: 12px; color: #e65100; margin-bottom: 2px; }
+
+  /* ARCHIVOS */
+  .file-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 12px;
+  }
+  .file-item:last-child { border-bottom: none; }
+  .file-icon { font-size: 15px; }
+  .file-path { color: #1565c0; font-family: 'Consolas', monospace; font-size: 11px; }
+  .file-ok   { color: var(--verde); font-weight: 700; font-size: 11px; }
+
+  /* GEOMETRÍA */
+  .geo-table td:first-child { font-weight: 600; color: var(--azul); width: 110px; }
+  .geo-table td { font-size: 12px; padding: 5px 8px; }
+
+  /* FOOTER */
+  footer {
+    text-align: center; padding: 16px;
+    color: #90a4ae; font-size: 11px; margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Dashboard — Red IEEE 802.11ac para Teleoperación LHD</h1>
+    <p>Adrián Álvaro López Pascual · 20192733 · PUCP Telecomunicaciones · Nexa Cerro Lindo NV1640</p>
+  </div>
+  <div class="badge-version">Simulación v9 · 2026-06-14</div>
+</header>
+
+<div class="container">
+
+  <!-- ═══════════════════════════════════════════════
+       FILA 1 — KPIs PRINCIPALES (escenario real)
+  ═══════════════════════════════════════════════ -->
+  <div class="card" style="margin-bottom:20px">
+    <h2>KPIs principales — escenario mobility_5hawks_real (ns-3 v9)</h2>
+    <div class="grid-4" style="margin-bottom:0">
+      <div class="metric ok">
+        <div class="val">3.74</div>
+        <div class="lbl">OWD Comandos (ms)</div>
+        <div class="thr">umbral ≤ 20 ms ✓</div>
+      </div>
+      <div class="metric ok">
+        <div class="val">43.88</div>
+        <div class="lbl">Video E2E (ms)</div>
+        <div class="thr">umbral ≤ 150 ms ✓</div>
+      </div>
+      <div class="metric ok">
+        <div class="val">0.25</div>
+        <div class="lbl">Jitter P95 video (ms)</div>
+        <div class="thr">umbral ≤ 10 ms ✓</div>
+      </div>
+      <div class="metric warn">
+        <div class="val">0.549</div>
+        <div class="lbl">PLR Comandos (%)</div>
+        <div class="thr">umbral ≤ 0.5% ⚠ +0.049pp</div>
+      </div>
+    </div>
+    <div class="grid-4" style="margin-top:12px;margin-bottom:0">
+      <div class="metric ok">
+        <div class="val">0.249</div>
+        <div class="lbl">PLR Video (%)</div>
+        <div class="thr">umbral ≤ 1.0% ✓</div>
+      </div>
+      <div class="metric ok">
+        <div class="val">39.90</div>
+        <div class="lbl">Goodput Video (Mbps)</div>
+        <div class="thr">umbral ≥ 38 Mbps ✓</div>
+      </div>
+      <div class="metric ok">
+        <div class="val">5/6</div>
+        <div class="lbl">KPIs cumplidos</div>
+        <div class="thr">resultado global ⚠ marginal</div>
+      </div>
+      <div class="metric ok">
+        <div class="val">9.4</div>
+        <div class="lbl">System Loss (dB)</div>
+        <div class="thr">cables + conectores + margen</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       FILA 2 — AVANCE GENERAL + ESCENARIOS
+  ═══════════════════════════════════════════════ -->
+  <div class="grid-2">
+
+    <div class="card">
+      <h2>Avance general del proyecto</h2>
+
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Código ns-3 v9</span><span style="color:var(--verde)">100%</span></div>
+        <div class="bar-bg"><div class="bar-fill bar-verde" style="width:100%"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Resultados CSV (6 escenarios + 10 seeds)</span><span style="color:var(--verde)">100%</span></div>
+        <div class="bar-bg"><div class="bar-fill bar-verde" style="width:100%"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Figuras para tesis (fig1–fig6 + graficas 08–11 + val 01–04)</span><span style="color:var(--verde)">100%</span></div>
+        <div class="bar-bg"><div class="bar-fill bar-verde" style="width:100%"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Geometría real (ángulos 70°/65°) en código + figuras + doc</span><span style="color:var(--verde)">100%</span></div>
+        <div class="bar-bg"><div class="bar-fill bar-verde" style="width:100%"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Megadocumento Cap3 actualizado a v9</span><span style="color:var(--verde)">100%</span></div>
+        <div class="bar-bg"><div class="bar-fill bar-verde" style="width:100%"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Redacción Capítulo 3 (texto tesis)</span><span style="color:var(--ambar)">0%</span></div>
+        <div class="bar-bg"><div class="bar-fill bar-ambar" style="width:0%"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Capítulos 4–5 (resultados + conclusiones)</span><span style="color:var(--rojo)">0%</span></div>
+        <div class="bar-bg"><div class="bar-fill bar-rojo" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Resultados por escenario</h2>
+      <table>
+        <tr>
+          <th>Escenario</th>
+          <th>OWD (ms)</th>
+          <th>E2E (ms)</th>
+          <th>PLR cmd</th>
+          <th>Goodput</th>
+          <th>Global</th>
+        </tr>
+        <tr>
+          <td><strong>mobility_5hawks_real</strong></td>
+          <td>3.74</td><td>43.88</td><td>0.549%</td><td>39.90</td>
+          <td><span class="tag tag-warn">⚠ marginal</span></td>
+        </tr>
+        <tr>
+          <td>mobility_4hawks_sin_h4</td>
+          <td>4.63</td><td>115.48</td><td>0.255%</td><td>39.68</td>
+          <td><span class="tag tag-ok">✓ OK</span></td>
+        </tr>
+        <tr>
+          <td>mobility_sin_cardfijo_bp</td>
+          <td>1.63</td><td>36.07</td><td>0.001%</td><td>40.00</td>
+          <td><span class="tag tag-ok">✓ OK</span></td>
+        </tr>
+        <tr>
+          <td>lhd_rapido_mobility</td>
+          <td>7.46</td><td>336.39</td><td>0.490%</td><td>38.53</td>
+          <td><span class="tag tag-fail">✗ falla</span></td>
+        </tr>
+        <tr>
+          <td>video_20mbps_mobility</td>
+          <td>3.69</td><td>152.54</td><td>0.605%</td><td>19.25</td>
+          <td><span class="tag tag-fail">✗ falla</span></td>
+        </tr>
+        <tr>
+          <td>baseline (estático)</td>
+          <td>8.94</td><td>194.40</td><td>0.097%</td><td>38.67</td>
+          <td><span class="tag tag-fail">✗ falla</span></td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       FILA 3 — PENDIENTES + MEJORAS
+  ═══════════════════════════════════════════════ -->
+  <div class="grid-2">
+
+    <div class="card">
+      <h2>Pendientes</h2>
+
+      <div class="check-item">
+        <span class="icon">🔴</span>
+        <div>
+          <div><strong>Redactar texto del Capítulo 3</strong></div>
+          <div class="sub">El MEGADOCUMENTO ya tiene todos los datos v9 listos para pasar a redacción académica</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <span class="icon">🔴</span>
+        <div>
+          <div><strong>Capítulo 4 — Resultados</strong></div>
+          <div class="sub">Tabla KPIs con valores obtenidos, comparación contra umbrales, análisis de validación</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <span class="icon">🔴</span>
+        <div>
+          <div><strong>Capítulo 5 — Conclusiones</strong></div>
+          <div class="sub">Two-slope adecuado (RMSE 7.9 dB), KPIs cumplen, limitaciones y trabajos futuros</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <span class="icon">🟡</span>
+        <div>
+          <div><strong>Confirmar antena Cardinal (A-EPNT-0007 vs A-HELI-0040)</strong></div>
+          <div class="sub">Verificar con Billy/Nexa cuál antena se usa realmente — afecta Gr en link budget</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <span class="icon">🟡</span>
+        <div>
+          <div><strong>Figuras definitivas modelado (cap3/modelado/figuras_definitivas/)</strong></div>
+          <div class="sub">grafica_06 y grafica_07 no fueron regeneradas en v9 — revisar si están actualizadas</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <span class="icon">🟢</span>
+        <div>
+          <div><strong>README + requirements.txt para entregable de código</strong></div>
+          <div class="sub">Documentación mínima para reproducibilidad del proyecto</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <span class="icon">🟢</span>
+        <div>
+          <div><strong>Numeración consecutiva de figuras (Fig 3.1, 3.2 …)</strong></div>
+          <div class="sub">Verificar que todas las figuras estén referenciadas en el texto</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Mejoras posibles a la simulación</h2>
+
+      <div class="mejora mejora-alta">
+        <h4>⚠ PLR Comandos 0.549% — justificación handover reactivo</h4>
+        <p>El handover ns-3 (~307 ms reactivo) vs Rajant InstaMesh (&lt;15 ms proactivo) explica la diferencia de 0.049pp sobre el umbral. Documentar explícitamente en sección de limitaciones. PLR real esperado ≈ 0.004%.</p>
+      </div>
+
+      <div class="mejora mejora-alta">
+        <h4>🔶 Shadowing espacialmente correlado</h4>
+        <p>Actualmente desactivado (no existe modelo en ns-3.40 para canal de túnel). Declarar como limitación. Impacto: los resultados son deterministas por semilla — el CV=74.8% del baseline refleja la variabilidad RNG, no shadowing real.</p>
+      </div>
+
+      <div class="mejora mejora-media">
+        <h4>🟢 Jitter P95 = 0.25 ms idéntico en todos los escenarios</h4>
+        <p>FlowMonitor no captura gaps por pérdida de paquetes. Alternativa: exportar timestamps individuales y calcular jitter en Python. Mejora la fidelidad del KPI sin recompilar ns-3.</p>
+      </div>
+
+      <div class="mejora mejora-media">
+        <h4>🟢 Baseline bimodal (CV = 74.8% Video E2E)</h4>
+        <p>Alta varianza entre 10 semillas en escenario sin movilidad. Investigar causa (puede ser primer handover al inicio de la simulación). Añadir warm-up de 10 s antes de medir.</p>
+      </div>
+
+      <div class="mejora mejora-baja">
+        <h4>🔵 Análisis de sensibilidad ±10% n₁/n₂/d_bp</h4>
+        <p>Ya generado en val_03_sensibilidad.png. Expandir a tabla en texto: cuánto cambia el PLR y el E2E al variar cada parámetro.</p>
+      </div>
+
+      <div class="mejora mejora-baja">
+        <h4>🔵 Múltiples LHDs (escalabilidad)</h4>
+        <p>Fuera de alcance de tesis — documentar como trabajo futuro. Mención cualitativa suficiente.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       FILA 4 — GEOMETRÍA + ARCHIVOS
+  ═══════════════════════════════════════════════ -->
+  <div class="grid-2">
+
+    <div class="card">
+      <h2>Geometría v9 — posiciones físicas NV1640</h2>
+      <table class="geo-table">
+        <tr><th>Nodo</th><th>x (m)</th><th>y (m)</th><th>Segmento</th></tr>
+        <tr><td>H0</td><td>0.0</td><td>0.0</td><td>Galería principal (portal)</td></tr>
+        <tr><td>H1</td><td>48.9</td><td>0.0</td><td>Galería principal</td></tr>
+        <tr><td>H2</td><td>183.7</td><td>0.0</td><td>Galería principal (boca BP)</td></tr>
+        <tr><td>CardFijo</td><td>194.1</td><td>28.4</td><td>Ramal BP 70° — 30.25 m desde boca</td></tr>
+        <tr><td>H3</td><td>318.5</td><td>0.0</td><td>Galería principal (boca Des.)</td></tr>
+        <tr><td>H4</td><td>329.6</td><td>23.9</td><td>Ramal Desmonte 65° — 26.4 m desde boca</td></tr>
+      </table>
+      <div style="margin-top:14px; font-size:12px; color:#546e7a;">
+        <strong>Extremos de ramales:</strong><br>
+        Breakpoint (fondo BP): (202.5, 51.7) — 55 m a 70°<br>
+        Desmonte (fondo Des.): (338.8, 43.5) — 48 m a 65°<br>
+        Galería principal total: 318.5 m · Ciclo LHD: 964.2 m (ida+vuelta)
+      </div>
+
+      <div style="margin-top:14px">
+        <div style="font-size:12px; font-weight:700; color:var(--gris); margin-bottom:8px">Modelo de propagación two-slope</div>
+        <table>
+          <tr><td style="width:140px">n₁ (near-field)</td><td><strong>1.9</strong></td><td style="color:#90a4ae">d &lt; 40 m</td></tr>
+          <tr><td>n₂ (far-field)</td><td><strong>3.4</strong></td><td style="color:#90a4ae">d ≥ 40 m</td></tr>
+          <tr><td>d_bp</td><td><strong>40 m</strong></td><td style="color:#90a4ae">breakpoint</td></tr>
+          <tr><td>RMSE vs TamoGraph</td><td><strong>7.9 dB</strong></td><td style="color:var(--verde)">✓ &lt; 10 dB</td></tr>
+          <tr><td>System Loss</td><td><strong>9.4 dB</strong></td><td style="color:#90a4ae">cables + conectores</td></tr>
+          <tr><td>d_max video</td><td><strong>~130 m</strong></td><td style="color:#90a4ae">throughput ≥ 40 Mbps</td></tr>
+          <tr><td>Separación diseño</td><td><strong>84 m</strong></td><td style="color:#90a4ae">65% × d_max</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Archivos del proyecto — estado v9</h2>
+
+      <div style="font-size:11px; font-weight:700; color:var(--gris); margin-bottom:8px; text-transform:uppercase;">Código</div>
+      <div class="file-item"><span class="file-icon">📄</span><div><div class="file-path">cap3/simulacion_ns3/lhd-teleop-v2-nexa.cc</div><span class="file-ok">✓ v9 compilado y ejecutado</span></div></div>
+      <div class="file-item"><span class="file-icon">📄</span><div><div class="file-path">cap3/simulacion_ns3/run_all_simulations.sh</div><span class="file-ok">✓ 10 semillas baseline</span></div></div>
+      <div class="file-item"><span class="file-icon">📄</span><div><div class="file-path">cap3/simulacion_ns3/compilar_v9.sh</div><span class="file-ok">✓ script WSL</span></div></div>
+
+      <div style="font-size:11px; font-weight:700; color:var(--gris); margin:12px 0 8px; text-transform:uppercase;">Análisis Python</div>
+      <div class="file-item"><span class="file-icon">🐍</span><div><div class="file-path">graficas_simulacion/plot_mobility_kpis.py</div><span class="file-ok">✓ genera fig1–fig6</span></div></div>
+      <div class="file-item"><span class="file-icon">🐍</span><div><div class="file-path">graficas_simulacion/topologia_blockcaving.py</div><span class="file-ok">✓ topologia_blockcaving_v2.png</span></div></div>
+      <div class="file-item"><span class="file-icon">🐍</span><div><div class="file-path">cap3/simulacion_ns3/analyze_results.py</div><span class="file-ok">✓ v9</span></div></div>
+      <div class="file-item"><span class="file-icon">🐍</span><div><div class="file-path">cap3/simulacion_ns3/validate_models.py</div><span class="file-ok">✓ v9</span></div></div>
+
+      <div style="font-size:11px; font-weight:700; color:var(--gris); margin:12px 0 8px; text-transform:uppercase;">Figuras generadas (16 PNG)</div>
+      <div class="file-item"><span class="file-icon">🖼️</span><div><div class="file-path">fig1–fig6 · grafica_08–11 · val_01–04 · topologia_v2</div><span class="file-ok">✓ todas regeneradas v9</span></div></div>
+
+      <div style="font-size:11px; font-weight:700; color:var(--gris); margin:12px 0 8px; text-transform:uppercase;">Documentación</div>
+      <div class="file-item"><span class="file-icon">📝</span><div><div class="file-path">historico/MEGADOCUMENTO_CAP3_PARA_OPUS.md</div><span class="file-ok">✓ actualizado v9 (ángulos reales)</span></div></div>
+      <div class="file-item"><span class="file-icon">📊</span><div><div class="file-path">dashboard.html</div><span class="file-ok">✓ este archivo</span></div></div>
+      <div class="file-item"><span class="file-icon">⚠️</span><div><div class="file-path">cap3/modelado/figuras_definitivas/ (grafica_06, grafica_07)</div><div style="color:var(--ambar); font-size:11px; font-weight:700">⚠ pendiente verificar si están actualizadas</div></div></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       FILA 5 — LIMITACIONES DECLARADAS
+  ═══════════════════════════════════════════════ -->
+  <div class="card">
+    <h2>Limitaciones declaradas del modelo de simulación (Sección 3.4.8)</h2>
+    <div class="grid-2" style="margin-bottom:0">
+      <div>
+        <div class="limit-item"><strong>1. Handover reactivo ns-3 (~307 ms)</strong>Rajant InstaMesh es proactivo (&lt;15 ms). Causa PLR comandos 0.549% vs 0.004% real esperado.</div>
+        <div class="limit-item"><strong>2. Jitter P95 = 0.25 ms idéntico en todos los escenarios</strong>FlowMonitor no captura gaps por pérdida — el jitter real incluiría rafagas de pérdida.</div>
+        <div class="limit-item"><strong>3. Baseline bimodal (CV = 74.8%)</strong>Alta varianza del Video E2E entre 10 semillas sin movilidad — posible handover espurio al inicio.</div>
+      </div>
+      <div>
+        <div class="limit-item"><strong>4. Shadowing desactivado</strong>No existe modelo espacialmente correlado para canal de túnel en ns-3.40. Los resultados son deterministas por semilla.</div>
+        <div class="limit-item"><strong>5. Paredes uniformes / sin obstáculos dinámicos</strong>εr y σ constantes. No modela vehículos, ventiladores ni acumulaciones de mineral.</div>
+        <div class="limit-item"><strong>6. Un solo LHD</strong>Escalabilidad a N LHDs discutida cualitativamente. Simulación con múltiples LHDs: trabajo futuro.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Generado automáticamente · Tesis PUCP Telecomunicaciones · Adrián López 20192733 · v9 · 2026-06-14
+</footer>
+
+</body>
+</html>

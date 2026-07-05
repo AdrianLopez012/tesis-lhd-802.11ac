@@ -1,0 +1,165 @@
+{
+  "_comment": "Parámetros de diseño unificados — Simulación v8.1 LHD Teleop Nexa Cerro Lindo NV1640",
+  "_version": "8.1",
+  "_fecha": "2026-05-24",
+  "_cambios_v8_1": [
+    "NLOS corregido: LinkNlosLoss por par TX-RX (no por posición LHD)",
+    "RSSI corregido: ApRadioInfo distingue Hawk (30dBm+11dBi) vs CardFijo (23dBm+4.8dBi)",
+    "Asociación real: callbacks OnAssoc/OnDeAssoc + _assoc_log.csv con MAC→id",
+    "Escenarios comparativos físicamente válidos: mobility_4hawks_sin_h4, mobility_sin_cardfijo_bp",
+    "Eliminados: mobility_4hawks_100m (H4 en (400,0) fuera de geometría real), mobility_5hawks_100m",
+    "Sufijo outputs: _v8_1_"
+  ],
+
+  "topologia": {
+    "descripcion": "5 Hawks + 1 Cardinal fijo. Posiciones físicas reales v8.1.",
+    "n_hawks_real": 5,
+    "nodos": [
+      {"id": "H0",         "funcion": "Hawk fijo", "segmento": "galeria_principal",  "x": 0.0,   "y": 0.0,  "z": 2.0, "station_m": 0.0,   "tx_power_dbm": 30.0, "tx_gain_dbi": 11.0},
+      {"id": "H1",         "funcion": "Hawk fijo", "segmento": "galeria_principal",  "x": 48.9,  "y": 0.0,  "z": 2.0, "station_m": 48.9,  "tx_power_dbm": 30.0, "tx_gain_dbi": 11.0},
+      {"id": "H2",         "funcion": "Hawk fijo", "segmento": "galeria_principal",  "x": 183.7, "y": 0.0,  "z": 2.0, "station_m": 183.7, "tx_power_dbm": 30.0, "tx_gain_dbi": 11.0},
+      {"id": "CardFijo",   "funcion": "Cardinal Breadcrumb", "segmento": "ramal_bp", "x": 183.7, "y": 30.0, "z": 2.0, "station_m": 213.7, "tx_power_dbm": 23.0, "tx_gain_dbi": 4.8},
+      {"id": "H3",         "funcion": "Hawk fijo", "segmento": "galeria_principal",  "x": 318.5, "y": 0.0,  "z": 2.0, "station_m": 374.4, "tx_power_dbm": 30.0, "tx_gain_dbi": 11.0},
+      {"id": "H4",         "funcion": "Hawk fijo", "segmento": "ramal_desmonte",     "x": 318.5, "y": 25.9, "z": 2.0, "station_m": 400.3, "tx_power_dbm": 30.0, "tx_gain_dbi": 11.0}
+    ],
+    "forward_route_m": 482.1,
+    "closed_cycle_m": 964.2,
+    "covered_route_length_m": 426.3
+  },
+
+  "equipos": {
+    "hawk": {
+      "modelo": "Rajant FE1-5050",
+      "tx_power_dbm": 30.0,
+      "ganancia_antena_dbi": 11.0,
+      "altura_montaje_m": 2.0,
+      "estandar": "IEEE 802.11ac",
+      "ancho_banda_mhz": 40,
+      "mimo": "2x2",
+      "_ns3_mimo": "Antennas=2, MaxSupportedTxSpatialStreams=2, MaxSupportedRxSpatialStreams=2"
+    },
+    "cardinal": {
+      "modelo": "Rajant AG1-5250M",
+      "tx_power_dbm": 23.0,
+      "ganancia_antena_dbi": 4.8,
+      "altura_montaje_m": 1.0,
+      "mimo": "2x2",
+      "rol_lhd": "STA móvil",
+      "rol_fijo": "AP Breadcrumb en ramal BP"
+    }
+  },
+
+  "modelo_propagacion": {
+    "tipo": "Two-slope tunnel",
+    "frecuencia_hz": 5.0e9,
+    "exponente_los": 1.9,
+    "exponente_nlos": 3.4,
+    "distancia_breakpoint_m": 40.0,
+    "penalizacion_nlos_db_por_enlace": {
+      "mismo_segmento": 0,
+      "GAL_a_ramal_BP": 10,
+      "GAL_a_ramal_DES": 10,
+      "BP_a_DES": 20
+    },
+    "shadowing_los_sigma_db": 5.0,
+    "shadowing_nlos_sigma_db": 7.0,
+    "shadowing_ns3": false,
+    "distancia_ns3": "RouteDistance 2D (suma de segmentos de galería; no euclidiana)",
+    "_nota_nlos_v8_1": "LinkNlosLoss(txPos,rxPos): NLOS calculado por par TX-RX, no por posición LHD. Corrige v8 donde se penalizaba mismo-segmento incorrectamente.",
+    "_nota_perdidas_sistema": "Las pérdidas de sistema quedan absorbidas en la calibración two-slope; no se aplican por separado en ns-3."
+  },
+
+  "trafico": {
+    "video": {
+      "protocolo": "UDP",
+      "tasa_mbps": 40.0,
+      "codec": "H.264",
+      "retardo_codec_ms": 35.0,
+      "tamano_paquete_bytes": 1400,
+      "puerto_dst": 5000,
+      "tos_hex": "0xB8",
+      "dscp": "EF (Expedited Forwarding)",
+      "wmm_ac": "AC_VI"
+    },
+    "comandos": {
+      "protocolo": "UDP",
+      "tasa_mbps": 0.5,
+      "tamano_paquete_bytes": 128,
+      "puerto_dst": 6000,
+      "tos_hex": "0xC0",
+      "dscp": "CS6 (Network Control)",
+      "wmm_ac": "AC_VO",
+      "on_time_s": 1,
+      "off_time_s": 0
+    },
+    "telemetria": {
+      "protocolo": "UDP",
+      "tasa_mbps": 0.1,
+      "tamano_paquete_bytes": 200,
+      "puerto_dst": 7000,
+      "tos_hex": "0x00",
+      "dscp": "BE (Best Effort)",
+      "wmm_ac": "AC_BE",
+      "on_time_s": 1,
+      "off_time_s": 0
+    }
+  },
+
+  "movilidad": {
+    "velocidad_nominal_ms": 2.22,
+    "velocidad_rapida_ms": 3.33,
+    "lhd_altura_m": 1.0
+  },
+
+  "kpis": {
+    "video_e2e_media_ms":         {"umbral": 150,  "tipo": "max", "nota": "ITU-T G.1010"},
+    "video_plr_pct":              {"umbral": 1.0,  "tipo": "max", "nota": "ITU-T G.1010"},
+    "video_payload_goodput_mbps": {"umbral": 38.0, "tipo": "min", "nota": "4 cámaras H.264 @ 10Mbps c/u"},
+    "video_jitter_p95_ms":        {"umbral": 10.0, "tipo": "max", "nota": "ITU-T G.1010"},
+    "cmd_owd_media_ms":           {"umbral": 20.0, "tipo": "max", "nota": "OWD = RTT/2; RTT_req=40ms"},
+    "cmd_plr_pct":                {"umbral": 0.1,  "tipo": "max", "nota": "Hasan et al. 2023"}
+  },
+
+  "escenarios": {
+    "mobility_5hawks_real": {
+      "descripcion": "PRINCIPAL tesis — 5H posiciones reales, 2.22m/s, CardFijo en BP",
+      "n_hawks": 5, "n_cardfijos": 1, "posiciones": "reales_v8_1", "vel_ms": 2.22, "video_mbps": 40.0, "nlos": true
+    },
+    "mobility_4hawks_sin_h4": {
+      "descripcion": "Comparativo — 4H (H0-H3 reales), sin H4 ni CardFijo",
+      "n_hawks": 4, "n_cardfijos": 0, "posiciones": "H0-H3_reales", "vel_ms": 2.22, "video_mbps": 40.0, "nlos": true,
+      "_justificacion": "Cuantifica la cobertura aportada por H4 en ramal Desmonte y CardFijo en BP"
+    },
+    "mobility_sin_cardfijo_bp": {
+      "descripcion": "Comparativo — 5H posiciones reales, sin CardFijo en BP",
+      "n_hawks": 5, "n_cardfijos": 0, "posiciones": "reales_v8_1", "vel_ms": 2.22, "video_mbps": 40.0, "nlos": true,
+      "_justificacion": "Cuantifica el margen que aporta el Breadcrumb fijo en el ramal BP"
+    },
+    "lhd_rapido_mobility": {
+      "descripcion": "Sensibilidad velocidad — 3.33 m/s",
+      "n_hawks": 5, "n_cardfijos": 1, "posiciones": "reales_v8_1", "vel_ms": 3.33, "video_mbps": 40.0, "nlos": true
+    },
+    "video_20mbps_mobility": {
+      "descripcion": "Sensibilidad bitrate — 20 Mbps (demuestra insuficiencia para 4 cámaras)",
+      "n_hawks": 5, "n_cardfijos": 1, "posiciones": "reales_v8_1", "vel_ms": 2.22, "video_mbps": 20.0, "nlos": true
+    },
+    "baseline": {
+      "descripcion": "Referencia controlada — recorrido lineal, NLOS off",
+      "n_hawks": 5, "n_cardfijos": 1, "posiciones": "reales_v8_1", "vel_ms": 2.22, "video_mbps": 40.0, "nlos": false
+    }
+  },
+  "_nota_escenarios_obsoletos": "mobility_4hawks_100m y mobility_5hawks_100m de v8 reemplazados: H4 en (400,0) estaba fuera de la geometría real.",
+
+  "archivos_salida": {
+    "sufijo": "_v8_1_",
+    "pos_log_columnas": "time_s,x,y,station_m,segment_id,nlos_region,serving_hawk,rssi_dbm",
+    "assoc_log_columnas": "time_s,event,ap_id,x,y,station_m"
+  },
+
+  "simulacion": {
+    "sim_time_s": 300,
+    "t_start_s": 3.0,
+    "seeds": [1, 2, 3],
+    "version_ns3": "3.40"
+  }
+}

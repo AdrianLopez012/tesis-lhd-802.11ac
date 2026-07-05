@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Editor Topología — NV1640 Nexa Cerro Lindo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0e17;font-family:'Segoe UI',sans-serif;color:#cdd9e5;overflow:hidden;user-select:none}
+
+/* ── TOOLBAR ── */
+#toolbar{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  background:#161b22f0;backdrop-filter:blur(8px);
+  border-bottom:1px solid #30363d;
+  display:flex;align-items:center;gap:6px;padding:6px 10px;flex-wrap:wrap;
+}
+#toolbar h1{font-size:12px;color:#58a6ff;font-weight:700;white-space:nowrap;margin-right:4px}
+.sep{width:1px;height:20px;background:#30363d;flex-shrink:0}
+.tbtn{
+  background:#21262d;border:1px solid #30363d;color:#cdd9e5;
+  padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;white-space:nowrap;
+  display:flex;align-items:center;gap:4px;
+}
+.tbtn:hover{background:#30363d}
+.tbtn.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+.tbtn.mode-draw{background:#0d3d1a;border-color:#3fb950;color:#3fb950}
+.tbtn.mode-draw.active{background:#196130;color:#fff}
+.tbtn.mode-move{background:#0d2a3d;border-color:#58a6ff;color:#58a6ff}
+.tbtn.mode-move.active{background:#1a3a5a;color:#fff}
+.tbtn.mode-route{background:#3d1a00;border-color:#f78166;color:#f78166}
+.tbtn.mode-route.active{background:#6a2a00;color:#fff}
+.tbtn.mode-ap{background:#2d1f00;border-color:#e3b341;color:#e3b341}
+.tbtn.mode-ap.active{background:#4a3200;color:#fff}
+.tbtn.mode-del{background:#3d0d0d;border-color:#f85149;color:#f85149}
+.tbtn.mode-del.active{background:#6a1414;color:#fff}
+
+/* ── INFO BAR ── */
+#infobar{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:#161b22f0;border-top:1px solid #30363d;
+  padding:4px 12px;font-size:11px;color:#8b949e;
+  display:flex;gap:16px;align-items:center;
+}
+#infobar span{color:#58a6ff}
+
+/* ── CANVAS ── */
+#canvas-wrap{
+  position:fixed;top:42px;bottom:24px;left:0;right:270px;
+  overflow:hidden;
+}
+canvas{display:block}
+
+/* ── PANEL ── */
+#panel{
+  position:fixed;right:0;top:42px;bottom:24px;width:270px;
+  background:#0d1117;border-left:1px solid #30363d;
+  overflow-y:auto;display:flex;flex-direction:column;z-index:100;
+}
+.pblock{border-bottom:1px solid #21262d;padding:9px 11px}
+.pblock h3{font-size:10px;color:#58a6ff;text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:8px;font-weight:700}
+
+/* Segment type selector */
+.seg-type-btn{
+  display:inline-block;padding:3px 8px;border-radius:4px;
+  font-size:10px;cursor:pointer;border:1px solid transparent;margin:2px;
+}
+.seg-type-btn.sel{border-color:#58a6ff}
+
+/* AP list */
+.ap-item{
+  display:flex;align-items:center;gap:6px;padding:5px 7px;
+  border-radius:5px;margin-bottom:3px;cursor:pointer;
+  border:1px solid transparent;font-size:11px;
+}
+.ap-item:hover{background:#161b22}
+.ap-item.sel{border-color:#58a6ff;background:#1a2233}
+.ap-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ap-info{flex:1;min-width:0}
+.ap-name{font-weight:700;font-size:11px}
+.ap-sub{color:#8b949e;font-size:10px}
+.ap-del{background:none;border:none;color:#6e4040;cursor:pointer;font-size:13px;padding:0 2px}
+.ap-del:hover{color:#ef9a9a}
+
+/* Node/segment props */
+.prop-row{display:flex;justify-content:space-between;padding:3px 0;
+  font-size:11px;border-bottom:1px solid #1c2128}
+.prop-row:last-child{border-bottom:none}
+.prop-key{color:#8b949e}
+.prop-val{color:#e6edf3;font-weight:600}
+
+/* Legend */
+.leg{display:flex;align-items:center;gap:6px;font-size:10px;padding:2px 0;color:#8b949e}
+.leg-line{width:18px;height:3px;border-radius:2px;flex-shrink:0}
+
+/* Route list */
+.route-item{
+  display:flex;align-items:center;gap:5px;padding:3px 6px;
+  font-size:10px;background:#161b22;border-radius:4px;margin-bottom:2px;
+}
+.route-item .ridx{color:#58a6ff;width:18px;flex-shrink:0}
+.route-del{background:none;border:none;color:#6e4040;cursor:pointer;font-size:11px}
+.route-del:hover{color:#f85149}
+
+/* Rows / inputs */
+.row{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px}
+.row label{width:120px;flex-shrink:0;color:#8b949e}
+.row input[type=range]{flex:1;accent-color:#58a6ff}
+.row .val{width:36px;text-align:right;color:#e6edf3;font-weight:700;font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- ══ TOOLBAR ══════════════════════════════════════════════════ -->
+<div id="toolbar">
+  <h1>🗺️ Editor NV1640</h1>
+  <div class="sep"></div>
+
+  <button class="tbtn mode-move active" id="btn-move" onclick="setMode('move')" title="Mover nodos (M)">
+    ✥ Mover
+  </button>
+  <button class="tbtn mode-draw" id="btn-draw" onclick="setMode('draw')" title="Dibujar segmentos (D)">
+    ✏️ Dibujar
+  </button>
+  <button class="tbtn mode-route" id="btn-route" onclick="setMode('route')" title="Trazar ruta LHD (R)">
+    🚜 Ruta LHD
+  </button>
+  <button class="tbtn mode-ap" id="btn-ap" onclick="setMode('ap')" title="Colocar AP (A)">
+    📶 AP
+  </button>
+  <button class="tbtn mode-del" id="btn-del" onclick="setMode('del')" title="Eliminar (X)">
+    🗑 Borrar
+  </button>
+
+  <div class="sep"></div>
+
+  <!-- Tipo de segmento a dibujar -->
+  <span style="font-size:10px;color:#8b949e">Tipo:</span>
+  <select id="seg-type" style="background:#21262d;border:1px solid #30363d;color:#cdd9e5;
+    padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer">
+    <option value="galeria">Galería principal</option>
+    <option value="galeria-bp">Galería paralela BP</option>
+    <option value="galeria-des">Galería paralela Des.</option>
+    <option value="zanja-bp">Zanja BP</option>
+    <option value="zanja-des">Zanja Desmonte</option>
+    <option value="acceso">Acceso / rampa</option>
+  </select>
+
+  <div class="sep"></div>
+  <button class="tbtn" onclick="zoom(1.25)">＋</button>
+  <button class="tbtn" onclick="zoom(0.8)">－</button>
+  <button class="tbtn" onclick="resetView()">⊙</button>
+
+  <div class="sep"></div>
+  <button class="tbtn" onclick="loadDefault()" title="Cargar topología Nexa NV1640 por defecto">
+    📂 Cargar NV1640
+  </button>
+  <button class="tbtn" onclick="clearAll()" style="border-color:#f85149;color:#f85149">
+    🗑 Limpiar todo
+  </button>
+  <div class="sep"></div>
+  <button class="tbtn" onclick="exportJSON()" title="Exportar topología como JSON">
+    💾 Exportar
+  </button>
+  <button class="tbtn" onclick="document.getElementById('imp').click()" title="Importar JSON">
+    📁 Importar
+  </button>
+  <input type="file" id="imp" accept=".json" style="display:none" onchange="importJSON(this)">
+
+  <div class="sep"></div>
+  <button class="tbtn active" id="btn-cob"    onclick="toggleLayer('cobertura')">📡 Cob.</button>
+  <button class="tbtn active" id="btn-nlos"   onclick="toggleLayer('nlos')">⚠️ NLOS</button>
+  <button class="tbtn active" id="btn-labels" onclick="toggleLayer('labels')">🏷️</button>
+</div>
+
+<!-- ══ CANVAS ════════════════════════════════════════════════════ -->
+<div id="canvas-wrap">
+  <canvas id="cv"></canvas>
+</div>
+
+<!-- ══ PANEL ═════════════════════════════════════════════════════ -->
+<div id="panel">
+
+  <!-- Instrucciones modo -->
+  <div class="pblock" id="mode-hint">
+    <h3>Modo activo</h3>
+    <div id="hint-text" style="font-size:11px;color:#8b949e;line-height:1.5">
+      <b style="color:#58a6ff">✥ Mover:</b> arrastra nodos para ajustar ángulos y posiciones.
+      Clic en segmento para ver propiedades.
+    </div>
+  </div>
+
+  <!-- Propiedades del elemento seleccionado -->
+  <div class="pblock" id="props-block" style="display:none">
+    <h3>Propiedades</h3>
+    <div id="props-content"></div>
+  </div>
+
+  <!-- Cobertura -->
+  <div class="pblock">
+    <h3>Cobertura</h3>
+    <div class="row"><label>d_max Hawk (m)</label>
+      <input type="range" id="s-cob-hawk" min="50" max="200" value="130" oninput="onCovParam()">
+      <span class="val" id="v-cob-hawk">130m</span></div>
+    <div class="row"><label>d_max Cardinal (m)</label>
+      <input type="range" id="s-cob-card" min="20" max="120" value="80" oninput="onCovParam()">
+      <span class="val" id="v-cob-card">80m</span></div>
+    <div class="row"><label>Tipo nuevo AP</label>
+      <select id="ap-tipo" style="flex:1;background:#21262d;border:1px solid #30363d;
+        color:#cdd9e5;padding:2px 5px;border-radius:4px;font-size:11px">
+        <option value="hawk">Hawk (30 dBm · 11 dBi)</option>
+        <option value="cardinal">Cardinal (23 dBm · 4.8 dBi)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- APs instalados -->
+  <div class="pblock">
+    <h3>APs instalados</h3>
+    <div id="ap-list"></div>
+  </div>
+
+  <!-- Ruta LHD -->
+  <div class="pblock">
+    <h3>Ruta LHD <button class="tbtn" style="font-size:10px;padding:1px 7px;margin-left:4px"
+      onclick="clearRoute()">Limpiar</button></h3>
+    <div id="route-list" style="max-height:140px;overflow-y:auto"></div>
+  </div>
+
+  <!-- Leyenda -->
+  <div class="pblock">
+    <h3>Leyenda</h3>
+    <div class="leg"><div class="leg-line" style="background:#4FC3F7"></div>Galería principal</div>
+    <div class="leg"><div class="leg-line" style="background:#81C784"></div>Galería paralela BP</div>
+    <div class="leg"><div class="leg-line" style="background:#FFB74D"></div>Galería paralela Des.</div>
+    <div class="leg"><div class="leg-line" style="background:#80CBC4"></div>Zanja BP</div>
+    <div class="leg"><div class="leg-line" style="background:#FFCC02"></div>Zanja Desmonte</div>
+    <div class="leg"><div class="leg-line" style="background:#CE93D8"></div>Acceso / rampa</div>
+    <div class="leg"><div class="leg-line" style="background:#FF6B6B;height:2px;border-top:2px dashed #FF6B6B;background:none"></div>Ruta LHD</div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="pblock">
+    <div style="background:#161b22;border-radius:5px;padding:7px;font-size:10px">
+      <div style="color:#58a6ff;font-weight:700;margin-bottom:4px">KPIs simulación v9</div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #21262d">
+        <span>OWD cmd</span><span style="color:#3fb950;font-weight:700">3.74 ms ✓</span></div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #21262d">
+        <span>Video E2E</span><span style="color:#3fb950;font-weight:700">43.88 ms ✓</span></div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #21262d">
+        <span>PLR cmd</span><span style="color:#f9a825;font-weight:700">0.549% ⚠</span></div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0">
+        <span>Goodput</span><span style="color:#3fb950;font-weight:700">39.9 Mbps ✓</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ INFO BAR ══════════════════════════════════════════════════ -->
+<div id="infobar">
+  <span id="ib-pos">x: — y: —</span>
+  <span id="ib-ap">AP: —</span>
+  <span id="ib-rssi">RSSI: —</span>
+  <span id="ib-angle" style="color:#e3b341"></span>
+  <span id="ib-zoom">Zoom: 100%</span>
+  <span id="ib-mode" style="color:#f9a825;margin-left:auto"></span>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  CONSTANTES DE PROPAGACIÓN
+// ══════════════════════════════════════════════════════════════
+const M2P_INIT = 2.0;
+let COB_HAWK = 130, COB_CARD = 80;
+
+// ══════════════════════════════════════════════════════════════
+//  ESTADO DEL EDITOR
+// ══════════════════════════════════════════════════════════════
+
+// Nodos: { id, x, y }
+// Segmentos: { id, a, b, tipo }  (a,b = índices de nodos)
+// APs: { id, tipo, x, y, label, sub, color, cob }
+// Ruta: array de { x, y } waypoints
+
+let nodes    = [];
+let segments = [];
+let aps      = [];
+let route    = [];
+
+let nodeIdSeq = 0, segIdSeq = 0, apIdSeq = 0;
+
+// ── Colores por tipo de segmento ─────────────────────────────
+const SEG_STYLE = {
+  'galeria':     { color:'#4FC3F7', fill:'#1a3a4a', width:5 },
+  'galeria-bp':  { color:'#81C784', fill:'#0a2010', width:5 },
+  'galeria-des': { color:'#FFB74D', fill:'#2a1200', width:5 },
+  'zanja-bp':    { color:'#80CBC4', fill:'#0d2520', width:4 },
+  'zanja-des':   { color:'#FFCC02', fill:'#2a2000', width:4 },
+  'acceso':      { color:'#CE93D8', fill:'#200a30', width:3.5 },
+};
+
+// ── Modo de interacción ───────────────────────────────────────
+let mode = 'move';   // move | draw | route | ap | del
+
+// Estado de dibujo
+let drawStart = null;   // nodo de inicio del segmento en curso
+let previewEnd = null;  // posición mouse para preview
+
+// Estado de selección
+let selNode = null, selSeg = null, selAP = null;
+
+// Estado de arrastre
+let dragNode = null, dragAP = null;
+let dragOffX = 0, dragOffY = 0;
+
+// ── Capas ─────────────────────────────────────────────────────
+const layers = { cobertura: true, nlos: true, labels: false };
+
+// ══════════════════════════════════════════════════════════════
+//  CANVAS
+// ══════════════════════════════════════════════════════════════
+const cv   = document.getElementById('cv');
+const ctx  = cv.getContext('2d');
+const wrap = document.getElementById('canvas-wrap');
+let scale = M2P_INIT, offX = 20, offY = 80;
+
+function w2c(wx, wy) { return [(wx + offX) * scale, (wy + offY) * scale]; }
+function c2w(cx, cy) { return [cx / scale - offX, cy / scale - offY]; }
+function m2px(m)      { return m * scale; }
+
+function zoom(f) {
+  scale *= f;
+  document.getElementById('ib-zoom').textContent = `Zoom: ${Math.round(scale/M2P_INIT*100)}%`;
+  draw();
+}
+function resetView() { scale = M2P_INIT; offX = 20; offY = 80; draw(); }
+
+function resizeCanvas() {
+  cv.width  = wrap.clientWidth;
+  cv.height = wrap.clientHeight;
+  draw();
+}
+
+function toggleLayer(name) {
+  layers[name] = !layers[name];
+  document.getElementById('btn-'+name)?.classList.toggle('active', layers[name]);
+  draw();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MODO
+// ══════════════════════════════════════════════════════════════
+const HINTS = {
+  move:  '<b style="color:#58a6ff">✥ Mover:</b> arrastra nodos para ajustar ángulos. Clic en segmento para ver propiedades.',
+  draw:  '<b style="color:#3fb950">✏️ Dibujar:</b> clic para colocar nodo inicial. Segundo clic = nodo final y crea el segmento. Esc para cancelar.',
+  route: '<b style="color:#f78166">🚜 Ruta LHD:</b> clic para añadir waypoints del recorrido. Los waypoints se conectan en orden con flechas de dirección.',
+  ap:    '<b style="color:#e3b341">📶 AP:</b> clic en el mapa para colocar un AP. Selecciona Hawk o Cardinal en el panel.',
+  del:   '<b style="color:#f85149">🗑 Borrar:</b> clic sobre un nodo, segmento o AP para eliminarlo.',
+};
+
+function setMode(m) {
+  mode = m;
+  drawStart = null; previewEnd = null;
+  selNode = null; selSeg = null; selAP = null;
+  ['move','draw','route','ap','del'].forEach(n => {
+    document.getElementById('btn-'+n).classList.toggle('active', n===m);
+  });
+  document.getElementById('hint-text').innerHTML = HINTS[m];
+  document.getElementById('props-block').style.display = 'none';
+  document.getElementById('ib-mode').textContent =
+    m==='draw'  ? '[ DIBUJAR — clic para colocar nodos ]' :
+    m==='route' ? '[ RUTA LHD — clic para añadir waypoints ]' :
+    m==='ap'    ? '[ COLOCAR AP — clic en el mapa ]' :
+    m==='del'   ? '[ BORRAR — clic sobre elemento ]' : '';
+  wrap.style.cursor = m==='move' ? 'grab' : 'crosshair';
+  draw();
+}
+
+// Teclas rápidas
+document.addEventListener('keydown', e => {
+  if (['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.key==='m'||e.key==='M') setMode('move');
+  if (e.key==='d'||e.key==='D') setMode('draw');
+  if (e.key==='r'||e.key==='R') setMode('route');
+  if (e.key==='a'||e.key==='A') setMode('ap');
+  if (e.key==='x'||e.key==='X') setMode('del');
+  if (e.key==='Escape') { drawStart=null; previewEnd=null; draw(); }
+  if (e.key==='+'||e.key==='=') zoom(1.2);
+  if (e.key==='-') zoom(0.83);
+  if (e.key==='0') resetView();
+  if ((e.key==='Delete'||e.key==='Backspace') && selNode!==null) { deleteNode(selNode); }
+  if ((e.key==='Delete'||e.key==='Backspace') && selSeg!==null)  { deleteSeg(selSeg);  }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  EVENTOS MOUSE
+// ══════════════════════════════════════════════════════════════
+wrap.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  const rect = wrap.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  const [wx, wy] = c2w(cx, cy);
+
+  if (mode === 'move') {
+    // ¿sobre un AP?
+    for (const ap of aps) {
+      const [px,py] = w2c(ap.x, ap.y);
+      if (Math.hypot(cx-px, cy-py) < m2px(9)) {
+        dragAP = ap; dragOffX = cx-px; dragOffY = cy-py;
+        selAP = ap; selNode = null; selSeg = null;
+        showAPProps(ap); return;
+      }
+    }
+    // ¿sobre un nodo?
+    const ni = hitNode(cx, cy);
+    if (ni !== null) {
+      dragNode = ni; dragOffX = cx - w2c(nodes[ni].x, nodes[ni].y)[0];
+      dragOffY  = cy - w2c(nodes[ni].x, nodes[ni].y)[1];
+      selNode = ni; selSeg = null; selAP = null;
+      showNodeProps(ni); return;
+    }
+    // ¿sobre un segmento?
+    const si = hitSeg(cx, cy);
+    if (si !== null) {
+      selSeg = si; selNode = null; selAP = null;
+      showSegProps(si);
+    } else {
+      // Pan
+      dragNode = null; dragAP = null;
+      wrap._pan = true; wrap._px = e.clientX; wrap._py = e.clientY;
+      wrap._ox = offX; wrap._oy = offY;
+    }
+    draw(); return;
+  }
+
+  if (mode === 'draw') {
+    const snap = snapToNode(cx, cy);
+    const wx2 = snap !== null ? nodes[snap].x : wx;
+    const wy2 = snap !== null ? nodes[snap].y : wy;
+    if (drawStart === null) {
+      // Primer clic — nodo inicial
+      let ni = snap;
+      if (ni === null) { ni = addNode(wx2, wy2); }
+      drawStart = ni;
+    } else {
+      // Segundo clic — nodo final + segmento
+      let ni = snap;
+      if (ni === null) { ni = addNode(wx2, wy2); }
+      const tipo = document.getElementById('seg-type').value;
+      addSegment(drawStart, ni, tipo);
+      drawStart = ni; // encadenar
+    }
+    draw(); return;
+  }
+
+  if (mode === 'route') {
+    route.push({ x: wx, y: wy });
+    buildRouteList();
+    draw(); return;
+  }
+
+  if (mode === 'ap') {
+    const tipo = document.getElementById('ap-tipo').value;
+    const id   = 'AP' + (++apIdSeq);
+    aps.push({
+      id, tipo, x: wx, y: wy,
+      label: id + ' ' + (tipo==='hawk' ? 'Hawk' : 'Cardinal'),
+      sub: `(${wx.toFixed(0)}, ${wy.toFixed(0)})`,
+      color: tipo==='hawk' ? '#58a6ff' : '#f78166',
+      cob: tipo==='hawk' ? COB_HAWK : COB_CARD
+    });
+    buildAPList(); draw(); return;
+  }
+
+  if (mode === 'del') {
+    // AP?
+    for (let i = aps.length-1; i >= 0; i--) {
+      const [px,py] = w2c(aps[i].x, aps[i].y);
+      if (Math.hypot(cx-px, cy-py) < m2px(9)) { aps.splice(i,1); buildAPList(); draw(); return; }
+    }
+    // Nodo?
+    const ni = hitNode(cx, cy);
+    if (ni !== null) { deleteNode(ni); return; }
+    // Segmento?
+    const si = hitSeg(cx, cy);
+    if (si !== null) { deleteSeg(si); return; }
+    // Waypoint ruta?
+    for (let i = route.length-1; i >= 0; i--) {
+      const [px,py] = w2c(route[i].x, route[i].y);
+      if (Math.hypot(cx-px, cy-py) < m2px(6)) { route.splice(i,1); buildRouteList(); draw(); return; }
+    }
+  }
+});
+
+wrap.addEventListener('mousemove', e => {
+  const rect = wrap.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  const [wx, wy] = c2w(cx, cy);
+
+  // Arrastre AP
+  if (dragAP) {
+    const [nx, ny] = c2w(cx - dragOffX, cy - dragOffY);
+    dragAP.x = nx; dragAP.y = ny;
+    dragAP.sub = `(${nx.toFixed(0)}, ${ny.toFixed(0)})`;
+    buildAPList(); draw(); return;
+  }
+
+  // Arrastre nodo
+  if (dragNode !== null) {
+    const [nx, ny] = c2w(cx - dragOffX, cy - dragOffY);
+    nodes[dragNode].x = nx; nodes[dragNode].y = ny;
+    draw(); return;
+  }
+
+  // Pan
+  if (wrap._pan) {
+    offX = wrap._ox + (e.clientX - wrap._px) / scale;
+    offY = wrap._oy + (e.clientY - wrap._py) / scale;
+    draw(); return;
+  }
+
+  // Preview línea en modo dibujo
+  if (mode === 'draw' && drawStart !== null) {
+    const snap = snapToNode(cx, cy);
+    previewEnd = snap !== null ? { x: nodes[snap].x, y: nodes[snap].y, snap: true }
+                               : { x: wx, y: wy, snap: false };
+    draw();
+  }
+
+  updateInfoBar(cx, cy, wx, wy);
+});
+
+wrap.addEventListener('mouseup', e => {
+  dragNode = null; dragAP = null; wrap._pan = false;
+  if (mode === 'move') wrap.style.cursor = 'grab';
+});
+
+wrap.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  // Clic derecho = cancelar dibujo en curso
+  if (mode === 'draw') { drawStart = null; previewEnd = null; draw(); }
+});
+
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom(e.deltaY < 0 ? 1.12 : 0.89);
+}, { passive: false });
+
+// ══════════════════════════════════════════════════════════════
+//  HIT TESTING
+// ══════════════════════════════════════════════════════════════
+function hitNode(cx, cy) {
+  for (let i = 0; i < nodes.length; i++) {
+    const [px,py] = w2c(nodes[i].x, nodes[i].y);
+    if (Math.hypot(cx-px, cy-py) < Math.max(7, m2px(5))) return i;
+  }
+  return null;
+}
+
+function snapToNode(cx, cy) {
+  const R = Math.max(12, m2px(6));
+  for (let i = 0; i < nodes.length; i++) {
+    const [px,py] = w2c(nodes[i].x, nodes[i].y);
+    if (Math.hypot(cx-px, cy-py) < R) return i;
+  }
+  return null;
+}
+
+function hitSeg(cx, cy) {
+  const THRESH = 8;
+  for (let i = segments.length-1; i >= 0; i--) {
+    const s = segments[i];
+    const [ax,ay] = w2c(nodes[s.a].x, nodes[s.a].y);
+    const [bx,by] = w2c(nodes[s.b].x, nodes[s.b].y);
+    if (distToSeg(cx,cy,ax,ay,bx,by) < THRESH) return i;
+  }
+  return null;
+}
+
+function distToSeg(px,py,ax,ay,bx,by) {
+  const dx=bx-ax, dy=by-ay, len2=dx*dx+dy*dy;
+  if (len2===0) return Math.hypot(px-ax,py-ay);
+  let t = ((px-ax)*dx+(py-ay)*dy)/len2;
+  t = Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CRUD NODOS / SEGMENTOS
+// ══════════════════════════════════════════════════════════════
+function addNode(x, y) {
+  nodes.push({ id: ++nodeIdSeq, x, y });
+  return nodes.length - 1;
+}
+
+function addSegment(a, b, tipo) {
+  segments.push({ id: ++segIdSeq, a, b, tipo });
+  return segments.length - 1;
+}
+
+function deleteNode(ni) {
+  // Eliminar segmentos que usan este nodo
+  segments = segments.filter(s => s.a !== ni && s.b !== ni);
+  // Reindexar referencias en segmentos
+  segments.forEach(s => {
+    if (s.a > ni) s.a--;
+    if (s.b > ni) s.b--;
+  });
+  nodes.splice(ni, 1);
+  selNode = null; selSeg = null;
+  document.getElementById('props-block').style.display = 'none';
+  draw();
+}
+
+function deleteSeg(si) {
+  segments.splice(si, 1);
+  selSeg = null;
+  document.getElementById('props-block').style.display = 'none';
+  draw();
+}
+
+function clearAll() {
+  if (!confirm('¿Limpiar toda la topología?')) return;
+  nodes=[]; segments=[]; aps=[]; route=[];
+  nodeIdSeq=0; segIdSeq=0; apIdSeq=0;
+  drawStart=null; previewEnd=null; selNode=null; selSeg=null; selAP=null;
+  buildAPList(); buildRouteList();
+  document.getElementById('props-block').style.display='none';
+  draw();
+}
+
+function clearRoute() { route=[]; buildRouteList(); draw(); }
+
+// ══════════════════════════════════════════════════════════════
+//  DRAW
+// ══════════════════════════════════════════════════════════════
+function draw() {
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle='#0a0e17'; ctx.fillRect(0,0,cv.width,cv.height);
+
+  // Grid
+  ctx.strokeStyle='#181f2e'; ctx.lineWidth=0.5;
+  const step = scale > 3 ? 10 : scale > 1.5 ? 25 : 50;
+  for(let x=-500;x<1000;x+=step){
+    const[px]=w2c(x,0);
+    ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,cv.height);ctx.stroke();
+  }
+  for(let y=-500;y<1000;y+=step){
+    const[,py]=w2c(0,y);
+    ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(cv.width,py);ctx.stroke();
+  }
+  // Ejes
+  ctx.strokeStyle='#252d3d'; ctx.lineWidth=1;
+  const[ox]=w2c(0,0);ctx.beginPath();ctx.moveTo(ox,0);ctx.lineTo(ox,cv.height);ctx.stroke();
+  const[,oy]=w2c(0,0);ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(cv.width,oy);ctx.stroke();
+
+  // Etiquetas de escala
+  if (layers.labels || scale > 2) {
+    ctx.fillStyle='#2a3a5a';ctx.font=`${Math.max(8,scale*4)}px sans-serif`;ctx.textAlign='left';
+    for(let x=0;x<600;x+=50){
+      const[px]=w2c(x,0); if(px>0&&px<cv.width) ctx.fillText(`${x}m`,px+2,12);
+    }
+  }
+
+  // ── Cobertura APs ──────────────────────────────────────────
+  if (layers.cobertura) {
+    aps.forEach(ap => {
+      const[px,py]=w2c(ap.x,ap.y), r=m2px(ap.cob);
+      const g=ctx.createRadialGradient(px,py,0,px,py,r);
+      g.addColorStop(0,ap.color+'2a');g.addColorStop(0.6,ap.color+'14');g.addColorStop(1,ap.color+'00');
+      ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+      ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);
+      ctx.strokeStyle=ap.color+'35';ctx.lineWidth=1;ctx.setLineDash([5,5]);ctx.stroke();ctx.setLineDash([]);
+    });
+  }
+
+  // ── NLOS (intersecciones de segmentos con galerías) ────────
+  if (layers.nlos) {
+    const nlosSegs = segments.filter(s => s.tipo==='zanja-bp'||s.tipo==='zanja-des');
+    nlosSegs.forEach(s => {
+      [[nodes[s.a].x,nodes[s.a].y],[nodes[s.b].x,nodes[s.b].y]].forEach(([nx,ny]) => {
+        const[px,py]=w2c(nx,ny),r=m2px(12);
+        ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);
+        ctx.fillStyle='#ff6f0020';ctx.fill();
+        ctx.strokeStyle='#ff6f0045';ctx.lineWidth=1;ctx.stroke();
+      });
+    });
+  }
+
+  // ── Segmentos ──────────────────────────────────────────────
+  segments.forEach((s, si) => {
+    const st = SEG_STYLE[s.tipo] || SEG_STYLE['galeria'];
+    const na = nodes[s.a], nb = nodes[s.b];
+    const isSel = si === selSeg;
+    drawTunnel(na.x,na.y,nb.x,nb.y, m2px(st.width), st.color, st.fill,
+               isSel ? 0.9 : 0.65, isSel);
+    // Flecha dirección a mitad del segmento
+    const mx=(na.x+nb.x)/2, my=(na.y+nb.y)/2;
+    drawArrow(na.x+(nb.x-na.x)*0.35, na.y+(nb.y-na.y)*0.35,
+              na.x+(nb.x-na.x)*0.55, na.y+(nb.y-na.y)*0.55, st.color+'88');
+    // Etiqueta longitud + ángulo
+    if (layers.labels || scale > 3) {
+      const len = Math.hypot(nb.x-na.x, nb.y-na.y);
+      const ang = Math.atan2(nb.y-na.y, nb.x-na.x) * 180 / Math.PI;
+      const[px,py]=w2c(mx,my);
+      ctx.fillStyle=st.color;ctx.font=`bold ${Math.max(8,scale*3.5)}px sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(`${len.toFixed(1)}m · ${ang.toFixed(1)}°`,px,py-m2px(4));
+      ctx.textBaseline='alphabetic';
+    }
+  });
+
+  // ── Preview segmento en dibujo ─────────────────────────────
+  if (mode==='draw' && drawStart!==null && previewEnd) {
+    const na = nodes[drawStart];
+    const tipo = document.getElementById('seg-type').value;
+    const st = SEG_STYLE[tipo]||SEG_STYLE['galeria'];
+    ctx.beginPath();
+    const[ax,ay]=w2c(na.x,na.y),[bx,by]=w2c(previewEnd.x,previewEnd.y);
+    ctx.moveTo(ax,ay);ctx.lineTo(bx,by);
+    ctx.strokeStyle=st.color+'99';ctx.lineWidth=Math.max(1.5,m2px(st.width*0.4));
+    ctx.setLineDash([8,6]);ctx.stroke();ctx.setLineDash([]);
+    // Ángulo live
+    const dx=previewEnd.x-na.x, dy=previewEnd.y-na.y;
+    const len=Math.hypot(dx,dy), ang=Math.atan2(dy,dx)*180/Math.PI;
+    document.getElementById('ib-angle').textContent =
+      `Segmento: ${len.toFixed(1)} m · ${ang.toFixed(1)}°`;
+  } else {
+    document.getElementById('ib-angle').textContent='';
+  }
+
+  // ── Nodos ─────────────────────────────────────────────────
+  nodes.forEach((n, ni) => {
+    const[px,py]=w2c(n.x,n.y);
+    const isSel = ni===selNode;
+    const isStart = ni===drawStart;
+    const r = Math.max(4, m2px(3.5));
+    ctx.beginPath();ctx.arc(px,py,r+2,0,Math.PI*2);
+    ctx.fillStyle=isStart?'#3fb95060':isSel?'#58a6ff40':'#ffffff15';ctx.fill();
+    ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);
+    ctx.fillStyle=isStart?'#3fb950':isSel?'#58a6ff':'#8b949e';ctx.fill();
+    ctx.strokeStyle='#0a0e17';ctx.lineWidth=1.5;ctx.stroke();
+    if (layers.labels || scale > 2.5) {
+      ctx.fillStyle='#cdd9e5';ctx.font=`${Math.max(7,scale*3)}px sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.fillText(`N${n.id}`,px,py+r+2);ctx.textBaseline='alphabetic';
+    }
+  });
+
+  // ── Ruta LHD ─────────────────────────────────────────────
+  if (route.length > 0) {
+    // Línea
+    ctx.beginPath();
+    const[rx0,ry0]=w2c(route[0].x,route[0].y);ctx.moveTo(rx0,ry0);
+    route.forEach(pt=>{const[px,py]=w2c(pt.x,pt.y);ctx.lineTo(px,py);});
+    ctx.strokeStyle='#FF6B6B';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.stroke();ctx.setLineDash([]);
+    // Flechas y waypoints
+    route.forEach((pt, i) => {
+      const[px,py]=w2c(pt.x,pt.y);
+      ctx.beginPath();ctx.arc(px,py,Math.max(4,m2px(3)),0,Math.PI*2);
+      ctx.fillStyle=i===0?'#FF6B6B':'#ff9a9a';ctx.fill();
+      ctx.strokeStyle='#0a0e17';ctx.lineWidth=1.5;ctx.stroke();
+      if (i < route.length-1) {
+        drawArrow(pt.x+(route[i+1].x-pt.x)*0.3, pt.y+(route[i+1].y-pt.y)*0.3,
+                  pt.x+(route[i+1].x-pt.x)*0.6, pt.y+(route[i+1].y-pt.y)*0.6, '#FF6B6Bcc');
+      }
+      if (layers.labels || scale > 2.5) {
+        ctx.fillStyle='#FF6B6B';ctx.font=`bold ${Math.max(8,scale*3.5)}px sans-serif`;
+        ctx.textAlign='center';ctx.textBaseline='bottom';
+        ctx.fillText(i===0?'Inicio':`W${i}`,px,py-m2px(4));ctx.textBaseline='alphabetic';
+      }
+    });
+  }
+
+  // ── APs ───────────────────────────────────────────────────
+  aps.forEach(ap => {
+    const[px,py]=w2c(ap.x,ap.y), r=m2px(ap.tipo==='hawk'?7:5.5);
+    ctx.beginPath();ctx.arc(px,py,r+m2px(1.5),0,Math.PI*2);ctx.fillStyle='#00000070';ctx.fill();
+    ctx.beginPath();
+    if(ap.tipo==='hawk'){ctx.arc(px,py,r,0,Math.PI*2);}
+    else{ctx.save();ctx.translate(px,py);ctx.rotate(Math.PI/4);ctx.rect(-r,-r,r*2,r*2);ctx.restore();}
+    ctx.fillStyle=ap.color;ctx.fill();
+    ctx.strokeStyle=(ap===selAP)?'#f9a825':'white';ctx.lineWidth=(ap===selAP)?2.5:1.5;ctx.stroke();
+    ctx.fillStyle='white';ctx.font=`bold ${Math.max(7,scale*3.5)}px sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ap.id,px,py);ctx.textBaseline='alphabetic';
+    if (layers.labels||scale>2.5) {
+      ctx.fillStyle=ap.color;ctx.font=`${Math.max(7,scale*3)}px sans-serif`;ctx.textAlign='center';
+      ctx.fillText(ap.label,px,py+m2px(ap.tipo==='hawk'?10:9));
+    }
+  });
+
+  drawScale();
+}
+
+function drawTunnel(x0,y0,x1,y1,wPx,lc,fc,alpha,highlight) {
+  const dx=x1-x0,dy=y1-y0,len=Math.sqrt(dx*dx+dy*dy);
+  if(len<0.1)return;
+  const[px0,py0]=w2c(x0,y0),[px1,py1]=w2c(x1,y1);
+  const nx=-dy/len*wPx/2*scale/M2P_INIT, ny=dx/len*wPx/2*scale/M2P_INIT;
+  ctx.beginPath();
+  ctx.moveTo(px0+nx,py0+ny);ctx.lineTo(px1+nx,py1+ny);
+  ctx.lineTo(px1-nx,py1-ny);ctx.lineTo(px0-nx,py0-ny);ctx.closePath();
+  ctx.fillStyle=fc;ctx.globalAlpha=alpha;ctx.fill();ctx.globalAlpha=1;
+  ctx.beginPath();ctx.moveTo(px0,py0);ctx.lineTo(px1,py1);
+  ctx.strokeStyle=highlight?'#ffffff':lc;
+  ctx.lineWidth=highlight?Math.max(2,scale*1.2):Math.max(1,scale*0.8);
+  ctx.stroke();
+}
+
+function drawArrow(x0,y0,x1,y1,color){
+  const[px0,py0]=w2c(x0,y0),[px1,py1]=w2c(x1,y1);
+  if(m2px(1)<1)return;
+  const ang=Math.atan2(py1-py0,px1-px0),al=Math.max(5,m2px(4));
+  ctx.beginPath();ctx.moveTo(px1,py1);
+  ctx.lineTo(px1-al*Math.cos(ang-0.42),py1-al*Math.sin(ang-0.42));
+  ctx.lineTo(px1-al*Math.cos(ang+0.42),py1-al*Math.sin(ang+0.42));
+  ctx.closePath();ctx.fillStyle=color;ctx.fill();
+}
+
+function drawScale(){
+  const sm=50,sp=m2px(sm),sx=20,sy=cv.height-38;
+  ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+sp,sy);
+  ctx.strokeStyle='#8b949e';ctx.lineWidth=2;ctx.setLineDash([]);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(sx,sy-5);ctx.lineTo(sx,sy+5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(sx+sp,sy-5);ctx.lineTo(sx+sp,sy+5);ctx.stroke();
+  ctx.fillStyle='#8b949e';ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText(`${sm} m`,sx+sp/2,sy-8);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  INFO BAR
+// ══════════════════════════════════════════════════════════════
+function updateInfoBar(cx, cy, wx, wy) {
+  document.getElementById('ib-pos').textContent = `x: ${wx.toFixed(1)} m  y: ${wy.toFixed(1)} m`;
+  let minD=Infinity, nearAP=null;
+  aps.forEach(ap=>{const d=Math.hypot(wx-ap.x,wy-ap.y);if(d<minD){minD=d;nearAP=ap;}});
+  if(nearAP){
+    document.getElementById('ib-ap').textContent=`${nearAP.label} (${minD.toFixed(0)} m)`;
+    const d=Math.max(1,minD),pl0=46.4,dbp=40,n1=1.9,n2=3.4;
+    const pl=d<dbp?pl0+10*n1*Math.log10(d):pl0+10*n1*Math.log10(dbp)+10*n2*Math.log10(d/dbp);
+    const pt=nearAP.tipo==='hawk'?30:23;
+    document.getElementById('ib-rssi').textContent=`RSSI: ${(pt+11+4.8-pl-9.4).toFixed(1)} dBm`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PROPIEDADES
+// ══════════════════════════════════════════════════════════════
+function showNodeProps(ni) {
+  const n = nodes[ni];
+  const segsOfNode = segments.filter(s=>s.a===ni||s.b===ni);
+  document.getElementById('props-block').style.display='';
+  document.getElementById('props-content').innerHTML = `
+    <div class="prop-row"><span class="prop-key">Nodo</span><span class="prop-val">N${n.id}</span></div>
+    <div class="prop-row"><span class="prop-key">X</span><span class="prop-val">${n.x.toFixed(2)} m</span></div>
+    <div class="prop-row"><span class="prop-key">Y</span><span class="prop-val">${n.y.toFixed(2)} m</span></div>
+    <div class="prop-row"><span class="prop-key">Segmentos</span><span class="prop-val">${segsOfNode.length}</span></div>
+    <button class="tbtn" style="margin-top:8px;width:100%;border-color:#f85149;color:#f85149"
+      onclick="deleteNode(${ni})">🗑 Eliminar nodo</button>`;
+}
+
+function showSegProps(si) {
+  const s = segments[si];
+  const na = nodes[s.a], nb = nodes[s.b];
+  const len = Math.hypot(nb.x-na.x, nb.y-na.y);
+  const ang = Math.atan2(nb.y-na.y, nb.x-na.x) * 180 / Math.PI;
+  const tipos = Object.keys(SEG_STYLE);
+  document.getElementById('props-block').style.display='';
+  document.getElementById('props-content').innerHTML = `
+    <div class="prop-row"><span class="prop-key">Segmento</span><span class="prop-val">S${s.id}</span></div>
+    <div class="prop-row"><span class="prop-key">Longitud</span><span class="prop-val">${len.toFixed(2)} m</span></div>
+    <div class="prop-row"><span class="prop-key">Ángulo</span><span class="prop-val">${ang.toFixed(1)}°</span></div>
+    <div class="prop-row"><span class="prop-key">Tipo</span></div>
+    <div style="margin:6px 0">
+      ${tipos.map(t=>`<span class="seg-type-btn ${t===s.tipo?'sel':''}"
+        style="background:${SEG_STYLE[t].color}22;color:${SEG_STYLE[t].color};border-color:${t===s.tipo?SEG_STYLE[t].color:'transparent'}"
+        onclick="changeSeg(${si},'${t}')">${t}</span>`).join('')}
+    </div>
+    <button class="tbtn" style="margin-top:6px;width:100%;border-color:#f85149;color:#f85149"
+      onclick="deleteSeg(${si})">🗑 Eliminar segmento</button>`;
+}
+
+function showAPProps(ap) {
+  document.getElementById('props-block').style.display='';
+  document.getElementById('props-content').innerHTML = `
+    <div class="prop-row"><span class="prop-key">ID</span><span class="prop-val">${ap.id}</span></div>
+    <div class="prop-row"><span class="prop-key">Tipo</span><span class="prop-val">${ap.tipo}</span></div>
+    <div class="prop-row"><span class="prop-key">X</span><span class="prop-val">${ap.x.toFixed(1)} m</span></div>
+    <div class="prop-row"><span class="prop-key">Y</span><span class="prop-val">${ap.y.toFixed(1)} m</span></div>
+    <div class="prop-row"><span class="prop-key">Cobertura</span><span class="prop-val">${ap.cob} m</span></div>
+    <div style="margin-top:6px">
+      <input placeholder="Etiqueta" value="${ap.label}"
+        style="width:100%;background:#0d1117;border:1px solid #30363d;color:#e6edf3;
+               padding:4px 7px;border-radius:4px;font-size:11px"
+        oninput="ap.label=this.value;buildAPList();draw()">
+    </div>`;
+}
+
+function changeSeg(si, tipo) {
+  segments[si].tipo = tipo;
+  showSegProps(si);
+  draw();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PANEL LISTAS
+// ══════════════════════════════════════════════════════════════
+function buildAPList() {
+  const list = document.getElementById('ap-list');
+  list.innerHTML = '';
+  aps.forEach((ap, i) => {
+    const div = document.createElement('div');
+    div.className='ap-item'+(ap===selAP?' sel':'');
+    div.innerHTML=`
+      <div class="ap-dot" style="background:${ap.color}"></div>
+      <div class="ap-info">
+        <div class="ap-name">${ap.label}</div>
+        <div class="ap-sub">${ap.sub}</div>
+      </div>
+      <button class="ap-del" onclick="aps.splice(${i},1);buildAPList();draw()">✕</button>`;
+    div.addEventListener('click', e => {
+      if(e.target.tagName==='BUTTON')return;
+      selAP=ap;selNode=null;selSeg=null;
+      showAPProps(ap);
+      document.querySelectorAll('.ap-item').forEach(d=>d.classList.remove('sel'));
+      div.classList.add('sel');
+      offX=cv.width/(2*scale)-ap.x; offY=cv.height/(2*scale)-ap.y; draw();
+    });
+    list.appendChild(div);
+  });
+}
+
+function buildRouteList() {
+  const list = document.getElementById('route-list');
+  list.innerHTML = '';
+  route.forEach((pt, i) => {
+    const div = document.createElement('div');
+    div.className='route-item';
+    div.innerHTML=`
+      <span class="ridx">${i===0?'⚑':i}</span>
+      <span style="flex:1;color:#cdd9e5">(${pt.x.toFixed(0)}, ${pt.y.toFixed(0)}) m</span>
+      <button class="route-del" onclick="route.splice(${i},1);buildRouteList();draw()">✕</button>`;
+    list.appendChild(div);
+  });
+}
+
+function onCovParam() {
+  COB_HAWK = +document.getElementById('s-cob-hawk').value;
+  COB_CARD = +document.getElementById('s-cob-card').value;
+  document.getElementById('v-cob-hawk').textContent = COB_HAWK+'m';
+  document.getElementById('v-cob-card').textContent = COB_CARD+'m';
+  aps.forEach(ap => ap.cob = ap.tipo==='hawk' ? COB_HAWK : COB_CARD);
+  draw();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TOPOLOGÍA POR DEFECTO — Nexa NV1640
+// ══════════════════════════════════════════════════════════════
+function loadDefault() {
+  clearAll();
+
+  const BP  = 70 * Math.PI / 180;
+  const DES = 65 * Math.PI / 180;
+  const BPL = 55, DESL = 48;
+  const GY  = 260;
+  const GBP = GY - BPL  * Math.sin(BP);
+  const GDS = GY + DESL * Math.sin(DES);
+
+  // Galería principal: nodos cada 55 m desde x=20
+  const X0 = 20, SEP = 55;
+  const gNs = [];
+  for (let i = 0; i <= 7; i++) {
+    gNs.push(addNode(X0 + i*SEP, GY));
+  }
+  for (let i = 0; i < gNs.length-1; i++) addSegment(gNs[i], gNs[i+1], 'galeria');
+
+  // Galería paralela BP
+  const bpNs = [];
+  for (let i = 1; i <= 6; i++) {
+    bpNs.push(addNode(X0 + i*SEP + BPL*Math.cos(BP), GBP));
+  }
+  for (let i = 0; i < bpNs.length-1; i++) addSegment(bpNs[i], bpNs[i+1], 'galeria-bp');
+
+  // Galería paralela Desmonte
+  const dsNs = [];
+  for (let i = 3; i <= 6; i++) {
+    dsNs.push(addNode(X0 + i*SEP + DESL*Math.cos(DES), GDS));
+  }
+  for (let i = 0; i < dsNs.length-1; i++) addSegment(dsNs[i], dsNs[i+1], 'galeria-des');
+
+  // Zanjas BP (conectan galería principal → galería paralela BP)
+  for (let i = 0; i < 6; i++) {
+    addSegment(gNs[i+1], bpNs[i], 'zanja-bp');
+  }
+
+  // Zanjas Desmonte (conectan galería principal → galería paralela Des)
+  for (let i = 0; i < 4; i++) {
+    addSegment(gNs[i+3], dsNs[i], 'zanja-des');
+  }
+
+  // Ruta LHD — circuito unidireccional
+  route = [];
+  // Inicio portal
+  route.push({ x: X0+10, y: GY });
+  // Ciclo BP: entra por boca izquierda de zanja, sale por galería paralela, baja por siguiente
+  for (let i = 0; i < 6; i += 2) {
+    const gn = gNs[i+1], bn = bpNs[i], bn2 = bpNs[i+1], gn2 = gNs[i+2];
+    route.push({ x: nodes[gn].x,  y: GY   });
+    route.push({ x: nodes[bn].x,  y: GBP  });
+    route.push({ x: nodes[bn2].x, y: GBP  });
+    route.push({ x: nodes[gn2].x, y: GY   });
+  }
+  // Ciclo Desmonte
+  for (let i = 0; i < 4; i += 2) {
+    const gn = gNs[i+3], dn = dsNs[i], dn2 = dsNs[i+1], gn2 = gNs[i+4];
+    route.push({ x: nodes[gn].x,  y: GY   });
+    route.push({ x: nodes[dn].x,  y: GDS  });
+    route.push({ x: nodes[dn2].x, y: GDS  });
+    route.push({ x: nodes[gn2].x, y: GY   });
+  }
+  route.push({ x: X0+10, y: GY });
+
+  // APs por defecto
+  apIdSeq = 0; aps = [];
+  const apDefs = [
+    {tipo:'hawk',    x:X0+28,  y:GY,  label:'H0', color:'#4CAF50'},
+    {tipo:'hawk',    x:X0+138, y:GY,  label:'H1', color:'#29B6F6'},
+    {tipo:'hawk',    x:X0+248, y:GY,  label:'H2', color:'#AB47BC'},
+    {tipo:'hawk',    x:X0+358, y:GY,  label:'H3', color:'#FF7043'},
+    {tipo:'hawk',    x:X0+160, y:GBP, label:'HBP1',color:'#69F0AE'},
+    {tipo:'hawk',    x:X0+320, y:GBP, label:'HBP2',color:'#B9F6CA'},
+    {tipo:'hawk',    x:X0+260, y:GDS, label:'HDS1',color:'#FFD54F'},
+    {tipo:'hawk',    x:X0+390, y:GDS, label:'HDS2',color:'#FFE082'},
+    {tipo:'cardinal',x:X0+75+BPL*Math.cos(BP)/2,  y:GY-BPL*Math.sin(BP)/2,  label:'CF1', color:'#F48FB1'},
+    {tipo:'cardinal',x:X0+185+BPL*Math.cos(BP)/2, y:GY-BPL*Math.sin(BP)/2,  label:'CF2', color:'#CE93D8'},
+    {tipo:'cardinal',x:X0+295+BPL*Math.cos(BP)/2, y:GY-BPL*Math.sin(BP)/2,  label:'CF3', color:'#80CBC4'},
+    {tipo:'cardinal',x:X0+215+DESL*Math.cos(DES)/2,y:GY+DESL*Math.sin(DES)/2,label:'CD1', color:'#FFAB40'},
+    {tipo:'cardinal',x:X0+325+DESL*Math.cos(DES)/2,y:GY+DESL*Math.sin(DES)/2,label:'CD2', color:'#A5D6A7'},
+  ];
+  apDefs.forEach(a=>{
+    aps.push({...a, id:'AP'+(++apIdSeq), sub:`(${a.x.toFixed(0)},${a.y.toFixed(0)})`,
+      cob: a.tipo==='hawk'?COB_HAWK:COB_CARD});
+  });
+
+  buildAPList(); buildRouteList(); draw();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EXPORT / IMPORT JSON
+// ══════════════════════════════════════════════════════════════
+function exportJSON() {
+  const data = { nodes, segments, aps, route, nodeIdSeq, segIdSeq, apIdSeq };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'topologia_nv1640.json';
+  a.click();
+}
+
+function importJSON(input) {
+  const f = input.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      nodes = d.nodes||[]; segments = d.segments||[];
+      aps = d.aps||[]; route = d.route||[];
+      nodeIdSeq = d.nodeIdSeq||nodes.length;
+      segIdSeq  = d.segIdSeq||segments.length;
+      apIdSeq   = d.apIdSeq||aps.length;
+      buildAPList(); buildRouteList(); draw();
+    } catch(err) { alert('Error al importar: '+err.message); }
+  };
+  r.readAsText(f);
+  input.value='';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+loadDefault();
+</script>
+</body>
+</html>

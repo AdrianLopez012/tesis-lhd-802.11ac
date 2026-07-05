@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>Editor Topología — Nexa Cerro Lindo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#1C2B33;color:#EEE;
+     display:flex;height:100vh;overflow:hidden;}
+
+/* ── Panel ── */
+#panel{width:255px;min-width:255px;background:#0F1E26;padding:10px 9px;
+       overflow-y:auto;display:flex;flex-direction:column;gap:7px;
+       box-shadow:3px 0 14px #0007;z-index:20;}
+.sec{font-size:9px;color:#80CBC4;text-transform:uppercase;letter-spacing:1.2px;
+     border-bottom:1px solid #1E3040;padding-bottom:3px;margin-top:5px;}
+.btn{background:#005F52;border:none;color:white;padding:6px 9px;border-radius:5px;
+     cursor:pointer;font-size:11px;width:100%;text-align:left;
+     margin-bottom:2px;transition:background .15s;}
+.btn:hover{background:#00796B;}
+.btn.red{background:#7F0000;} .btn.red:hover{background:#C62828;}
+.btn.grey{background:#1E3040;} .btn.grey:hover{background:#263F50;}
+.btn.active{background:#0277BD;}
+
+/* Paleta */
+.palette{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px;}
+.pal{cursor:grab;border-radius:5px;padding:5px 6px;font-size:9px;font-weight:bold;
+     color:white;text-align:center;user-select:none;min-width:60px;line-height:1.3;
+     box-shadow:0 2px 5px #0005;transition:transform .1s;}
+.pal:hover{transform:scale(1.08);}
+.pal sub{display:block;font-size:7px;font-weight:normal;opacity:.8;}
+
+/* Props */
+#props{background:#152028;border-radius:6px;padding:8px;font-size:11px;}
+#props label{display:block;margin-bottom:4px;color:#78909C;font-size:10px;}
+#props input,#props select,#props textarea{
+  width:100%;background:#1E3040;border:1px solid #263F50;color:#EEE;
+  border-radius:4px;padding:4px 6px;font-size:11px;margin-top:1px;}
+#props textarea{height:44px;resize:vertical;}
+#no-sel{color:#37474F;font-size:11px;padding:6px;text-align:center;}
+
+/* Canvas */
+#canvas-wrap{flex:1;overflow:auto;position:relative;background:#1A2830;}
+
+/* Toolbar */
+#toolbar{position:absolute;top:10px;left:10px;background:#0F1E26;
+         border-radius:7px;padding:5px 10px;display:flex;gap:5px;
+         align-items:center;box-shadow:0 2px 12px #0007;z-index:10;flex-wrap:wrap;}
+#toolbar button{background:#1E3040;border:none;color:#EEE;padding:4px 9px;
+  border-radius:4px;cursor:pointer;font-size:11px;}
+#toolbar button:hover{background:#263F50;}
+#toolbar button.active{background:#00695C;}
+#toolbar select{background:#1E3040;border:1px solid #263F50;color:#EEE;
+  border-radius:4px;padding:3px 5px;font-size:10px;}
+#mode-label{color:#80CBC4;font-size:10px;min-width:160px;}
+#zoom-label{color:#546E7A;font-size:10px;min-width:35px;}
+
+/* Opacity */
+#op-wrap{display:flex;align-items:center;gap:5px;font-size:10px;}
+#op-wrap input{flex:1;accent-color:#00897B;}
+
+/* SVG elementos */
+.node{cursor:move;}
+.node.sel .nbody{stroke:#FFD600!important;stroke-width:3px!important;}
+.cp{cursor:crosshair;fill:#00E5FF;stroke:#005F99;stroke-width:1.5;opacity:.85;}
+.cp:hover{opacity:1;r:7;}
+.edge-group .eline{cursor:pointer;}
+.edge-group .eline:hover{opacity:.7;}
+.edge-group.esel .eline{filter:drop-shadow(0 0 4px white);}
+
+/* Modal */
+#modal{display:none;position:fixed;inset:0;background:#000B;z-index:100;
+       align-items:center;justify-content:center;}
+#modal.open{display:flex;}
+#mbox{background:#0F1E26;border-radius:10px;padding:20px;width:700px;
+      max-height:85vh;overflow-y:auto;}
+#mbox h3{color:#80CBC4;margin-bottom:10px;font-size:13px;}
+#mbox textarea{width:100%;height:320px;background:#152028;color:#A5D6A7;
+  border:1px solid #1E3040;border-radius:5px;padding:10px;
+  font-size:10px;font-family:monospace;resize:vertical;}
+#mbox .row{display:flex;gap:8px;margin-top:10px;}
+#mbox button{flex:1;padding:8px;border-radius:5px;border:none;
+  cursor:pointer;font-size:12px;font-weight:bold;}
+</style>
+</head>
+<body>
+
+<!-- ══ PANEL ══ -->
+<div id="panel">
+  <div style="font-size:12px;font-weight:bold;color:#80CBC4;">🗺 Editor Topología</div>
+  <div style="font-size:9px;color:#37474F;line-height:1.5;">
+    Arrastra nodo al mapa · Clic=seleccionar<br>
+    Shift+clic=conectar · Doble clic=editar texto<br>
+    <b style="color:#80CBC4">Líneas:</b> arrastra el punto ● central para curvar
+  </div>
+
+  <div class="sec">Mapa de fondo</div>
+  <div id="op-wrap">
+    <span>Opacidad</span>
+    <input type="range" id="sld-op" min="0" max="100" value="65"/>
+    <span id="op-val">65%</span>
+  </div>
+  <button class="btn grey" id="btn-map">👁 Mostrar / Ocultar mapa</button>
+
+  <div class="sec">Agregar nodo (arrastra)</div>
+  <div class="palette">
+    <div class="pal" draggable="true" data-type="core_node"
+         style="background:#0D47A1;min-width:100%">
+      NODO CORE / SW CORE<sub>IDF + switch central</sub></div>
+    <div class="pal" draggable="true" data-type="workstation" style="background:#4527A0">
+      Workstation<sub>Operador</sub></div>
+    <div class="pal" draggable="true" data-type="slipstream" style="background:#AD1457">
+      Slipstream<sub>SITE datos</sub></div>
+    <div class="pal" draggable="true" data-type="nodo_idf" style="background:#00695C">
+      Nodo IDF<sub>SW Acceso</sub></div>
+    <div class="pal" draggable="true" data-type="hawk" style="background:#1565C0">
+      Hawk<sub>FE1-5050</sub></div>
+    <div class="pal" draggable="true" data-type="cardinal_ap" style="background:#6A1B9A">
+      Cardinal AP<sub>fijo pared</sub></div>
+    <div class="pal" draggable="true" data-type="lhd" style="background:#1B5E20">
+      LHD<sub>Cardinal móvil</sub></div>
+    <div class="pal" draggable="true" data-type="label" style="background:#263F50">
+      Etiqueta<sub>texto libre</sub></div>
+  </div>
+
+  <div class="sec">Tipo de conexión</div>
+  <select id="etype" style="width:100%;background:#1E3040;border:1px solid #263F50;
+    color:#EEE;border-radius:4px;padding:5px;font-size:11px;margin-bottom:3px;">
+    <option value="fo">Fibra Óptica SM — naranja</option>
+    <option value="utp">F/UTP CAT6 — verde</option>
+    <option value="wifi">WiFi 802.11ac — amarillo punteado</option>
+    <option value="custom">Personalizado — gris</option>
+  </select>
+  <button class="btn grey" id="btn-conn">🔗 Modo conexión (Shift+clic)</button>
+  <button class="btn red"  id="btn-del-edge" style="margin-top:2px">🗑 Eliminar enlace selec.</button>
+
+  <div class="sec">Propiedades</div>
+  <div id="props">
+    <div id="no-sel">← selecciona un nodo</div>
+    <div id="prop-form" style="display:none">
+      <label>Nombre<input id="p-label" type="text"/></label>
+      <label>Subtítulo<input id="p-sub" type="text"/></label>
+      <label>Color<input id="p-color" type="color" style="height:28px"/></label>
+      <label>Notas / IP<textarea id="p-notes"></textarea></label>
+      <button class="btn" id="btn-apply">✔ Aplicar</button>
+      <button class="btn red" id="btn-del-node" style="margin-top:2px">🗑 Eliminar nodo</button>
+    </div>
+  </div>
+
+  <div class="sec">Acciones</div>
+  <button class="btn grey" id="btn-preset">↺ Cargar topología Nexa</button>
+  <button class="btn grey" id="btn-grid">⊞ Cuadrícula</button>
+  <button class="btn red"  id="btn-clear">🧹 Limpiar canvas</button>
+
+  <div class="sec">Exportar</div>
+  <button class="btn" id="btn-export">📄 Exportar SVG</button>
+  <div style="font-size:9px;color:#37474F;margin-top:2px;line-height:1.4;">
+    Exporta → pégame el SVG → lo integro al HTML de la tesis.
+  </div>
+</div>
+
+<!-- ══ CANVAS ══ -->
+<div id="canvas-wrap">
+  <div id="toolbar">
+    <button id="tb-zi">＋</button>
+    <button id="tb-zo">－</button>
+    <button id="tb-zf">⊡ Fit</button>
+    <span id="zoom-label">100%</span>
+    <button id="tb-undo">↩ Deshacer</button>
+    <button id="btn-conn-tb" class="grey" style="font-size:10px">🔗 Conectar</button>
+    <select id="etype-tb" style="background:#1E3040;border:1px solid #263F50;
+      color:#EEE;border-radius:4px;padding:3px 5px;font-size:10px;">
+      <option value="fo">FO SM</option>
+      <option value="utp">F/UTP</option>
+      <option value="wifi">WiFi</option>
+      <option value="custom">Custom</option>
+    </select>
+    <span id="mode-label">Modo: mover</span>
+  </div>
+
+  <svg id="main-svg" width="1400" height="900" xmlns="http://www.w3.org/2000/svg"
+       style="display:block;">
+    <defs>
+      <pattern id="gpat" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M20 0L0 0 0 20" fill="none" stroke="#1E3040" stroke-width=".5"/>
+      </pattern>
+      <marker id="m-fo" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0,0 8,3 0,6" fill="#E65100"/></marker>
+      <marker id="m-utp" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0,0 8,3 0,6" fill="#558B2F"/></marker>
+      <marker id="m-wifi" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0,0 8,3 0,6" fill="#F9A825"/></marker>
+      <marker id="m-cust" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0,0 8,3 0,6" fill="#90A4AE"/></marker>
+    </defs>
+    <rect width="1400" height="900" fill="#1A2830"/>
+    <rect id="gbg" width="1400" height="900" fill="url(#gpat)" opacity=".3"/>
+    <image id="map-img" href="mapa_nivel1640.png"
+           x="80" y="55" width="1250" height="790"
+           opacity=".65" preserveAspectRatio="xMidYMid meet"/>
+    <g id="el"></g><!-- edges -->
+    <g id="cl"></g><!-- control points -->
+    <g id="nl"></g><!-- nodes -->
+  </svg>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div id="modal">
+  <div id="mbox">
+    <h3>SVG exportado — cópialo y pégamelo</h3>
+    <textarea id="svg-out" readonly></textarea>
+    <div class="row">
+      <button style="background:#00695C;color:white" id="btn-copy">📋 Copiar</button>
+      <button style="background:#7F0000;color:white" id="btn-mclose">✕ Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  CONFIGURACIÓN
+// ════════════════════════════════════════════════════════
+const NS='http://www.w3.org/2000/svg';
+const svg=document.getElementById('main-svg');
+const NL=document.getElementById('nl');
+const EL=document.getElementById('el');
+const CL=document.getElementById('cl');
+
+// Tipos de nodo
+const TD={
+  core_node:   {label:'NODO CORE\n/ SW CORE',sub:'IDF + switch central',
+                color:'#0D47A1',w:120,h:54,shape:'rect'},
+  workstation: {label:'Workstation',          sub:'Operador LHD',
+                color:'#4527A0',w:110,h:44,shape:'rect'},
+  slipstream:  {label:'Slipstream',           sub:'SITE de datos',
+                color:'#AD1457',w:115,h:44,shape:'rect'},
+  nodo_idf:    {label:'NODO',                 sub:'IDF / SW Acceso',
+                color:'#00695C',w:105,h:40,shape:'rect'},
+  hawk:        {label:'Hawk',                 sub:'FE1-5050',
+                color:'#1565C0',w:70,h:50,shape:'ap'},
+  cardinal_ap: {label:'Cardinal',             sub:'AP fijo',
+                color:'#6A1B9A',w:70,h:50,shape:'ap'},
+  lhd:         {label:'LHD',                  sub:'Cardinal móvil',
+                color:'#1B5E20',w:64,h:64,shape:'circle'},
+  label:       {label:'Texto',                sub:'',
+                color:'#263F50',w:90,h:28,shape:'label'},
+};
+
+// Estilos de arista
+const ES={
+  fo:    {stroke:'#E65100',sw:4,dash:'',      marker:'url(#m-fo)',  tag:'FO SM 1Gbps'},
+  utp:   {stroke:'#558B2F',sw:2,dash:'',      marker:'url(#m-utp)', tag:'F/UTP CAT6'},
+  wifi:  {stroke:'#F9A825',sw:1.5,dash:'9,5', marker:'url(#m-wifi)',tag:'WiFi 802.11ac'},
+  custom:{stroke:'#90A4AE',sw:1,  dash:'4,3', marker:'url(#m-cust)',tag:'Enlace'},
+};
+
+// Estado
+let nodes=[],edges=[];
+let sel=null,esel=null,conn=null;
+let cmode=false,showGrid=true,mapOn=true;
+let drag=null,cpDrag=null,zoom=1;
+let hist=[],idSeq=1;
+
+// ════════════════════════════════════════════════════════
+//  UTILIDADES
+// ════════════════════════════════════════════════════════
+function mk(tag,a={}){
+  const e=document.createElementNS(NS,tag);
+  for(const[k,v]of Object.entries(a))if(v!=null)e.setAttribute(k,String(v));
+  return e;
+}
+function tx(x,y,s,sz=11,fill='#EEE',w='normal',anc='middle'){
+  const t=mk('text',{x,y,'font-size':sz,fill,'text-anchor':anc,
+    'font-weight':w,'font-style':'normal',
+    'font-family':"'Segoe UI',Arial,sans-serif",'pointer-events':'none'});
+  t.textContent=s;return t;
+}
+function svgP(e){
+  const r=svg.getBoundingClientRect();
+  return{x:(e.clientX-r.left)/zoom,y:(e.clientY-r.top)/zoom};
+}
+function snap(v,g=10){return Math.round(v/g)*g;}
+function getET(){
+  return document.getElementById('etype').value;
+}
+function mid(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2};}
+
+// ════════════════════════════════════════════════════════
+//  NODO — RENDER
+// ════════════════════════════════════════════════════════
+function renderNode(n){
+  const d=TD[n.type]||TD.label;
+  const g=mk('g',{class:'node','data-id':n.id,
+    transform:`translate(${n.x},${n.y})`});
+
+  if(d.shape==='rect'||d.shape==='ap'){
+    const body=mk('rect',{x:-d.w/2,y:-d.h/2,width:d.w,height:d.h,
+      rx:7,fill:n.color,stroke:'rgba(255,255,255,0.2)',
+      'stroke-width':1.5,class:'nbody'});
+    g.append(body);
+    // Soporte multi-línea en label
+    const lines=n.label.split('\n');
+    if(lines.length>1){
+      g.append(tx(0,-7,lines[0],10,'white','bold'));
+      g.append(tx(0, 5,lines[1],10,'white','bold'));
+    } else {
+      g.append(tx(0,n.sub?-3:5,n.label,10,'white','bold'));
+    }
+    if(n.sub)g.append(tx(0,d.h/2-7,n.sub,7,'rgba(255,255,255,.7)'));
+    // Ícono antena para APs
+    if(d.shape==='ap'){
+      g.append(mk('line',{x1:0,y1:-d.h/2-1,x2:0,y2:-d.h/2-9,
+        stroke:'rgba(255,255,255,.5)','stroke-width':1.5}));
+      g.append(mk('circle',{cx:0,cy:-d.h/2-11,r:3,
+        fill:'rgba(255,255,255,.6)'}));
+    }
+  } else if(d.shape==='circle'){
+    const r=d.w/2;
+    g.append(mk('circle',{cx:0,cy:0,r,fill:n.color,
+      stroke:'rgba(255,255,255,.25)','stroke-width':2,class:'nbody'}));
+    g.append(tx(0,-4,n.label,10,'white','bold'));
+    if(n.sub)g.append(tx(0,9,n.sub,7,'rgba(255,255,255,.8)'));
+  } else {
+    g.append(mk('rect',{x:-d.w/2,y:-d.h/2,width:d.w,height:d.h,rx:4,
+      fill:'#152028CC',stroke:n.color,'stroke-width':1,class:'nbody'}));
+    g.append(tx(0,4,n.label,10,'#EEE','bold'));
+    if(n.sub)g.append(tx(0,15,n.sub,8,'#78909C'));
+  }
+  if(n.notes){const ti=mk('title');ti.textContent=n.notes;g.prepend(ti);}
+  return g;
+}
+
+function makeNode(type,x,y,ov={}){
+  const d=TD[type]||TD.label;
+  const n={id:'n'+(idSeq++),type,x:snap(x),y:snap(y),
+    label:ov.label||d.label,sub:ov.sub||d.sub,
+    color:ov.color||d.color,notes:ov.notes||''};
+  nodes.push(n);
+  n.el=renderNode(n);NL.appendChild(n.el);
+  attachNE(n);return n;
+}
+
+function refreshNode(n){
+  const old=n.el;n.el=renderNode(n);
+  NL.replaceChild(n.el,old);attachNE(n);
+  if(sel===n)hilite(n);
+  refreshEdgesOf(n.id);
+}
+
+// ════════════════════════════════════════════════════════
+//  ARISTA CURVA — con punto de control central arrastrable
+// ════════════════════════════════════════════════════════
+function edgePath(e){
+  const nf=nodes.find(n=>n.id===e.from);
+  const nt=nodes.find(n=>n.id===e.to);
+  if(!nf||!nt)return'';
+  // Si hay punto de control propio, úsalo; si no, usa el punto medio
+  if(!e.cx||!e.cy){
+    e.cx=(nf.x+nt.x)/2;
+    e.cy=(nf.y+nt.y)/2;
+  }
+  return`M${nf.x},${nf.y} Q${e.cx},${e.cy} ${nt.x},${nt.y}`;
+}
+
+function renderEdge(e){
+  const st=ES[e.etype]||ES.fo;
+  const g=mk('g',{'data-eid':e.id,class:'edge-group'});
+  const path=mk('path',{d:edgePath(e),fill:'none',
+    stroke:st.stroke,'stroke-width':st.sw,
+    'stroke-dasharray':st.dash||null,'marker-end':st.marker,
+    class:'eline'});
+  // Hit area invisible
+  const hit=mk('path',{d:edgePath(e),fill:'none',
+    stroke:'transparent','stroke-width':14,class:'edge-hit',cursor:'pointer'});
+  // Etiqueta en punto de control
+  const nf=nodes.find(n=>n.id===e.from),nt=nodes.find(n=>n.id===e.to);
+  if(!nf||!nt)return g;
+  const lx=e.cx,ly=e.cy;
+  const bg=mk('rect',{x:lx-28,y:ly-9,width:56,height:13,
+    fill:'#0D1A20',rx:3,opacity:'.9'});
+  const lbl=tx(lx,ly+1,st.tag,7,st.stroke);
+  g.append(path,hit,bg,lbl);
+  hit.addEventListener('click',ev=>{ev.stopPropagation();selectEdge(e);});
+  return g;
+}
+
+function makeEdge(fid,tid,etype){
+  const nf=nodes.find(n=>n.id===fid),nt=nodes.find(n=>n.id===tid);
+  if(!nf||!nt)return;
+  const e={id:'e'+(idSeq++),from:fid,to:tid,etype,
+    cx:(nf.x+nt.x)/2,cy:(nf.y+nt.y)/2};
+  edges.push(e);
+  e.el=renderEdge(e);EL.appendChild(e.el);
+  renderCP(e);return e;
+}
+
+function refreshEdge(e){
+  const old=e.el;e.el=renderEdge(e);
+  EL.replaceChild(e.el,old);
+  // actualizar path del cp visual
+  const cpEl=CL.querySelector(`[data-cpeid="${e.id}"]`);
+  if(cpEl){cpEl.setAttribute('cx',e.cx);cpEl.setAttribute('cy',e.cy);}
+}
+
+function refreshEdgesOf(nid){
+  edges.filter(e=>e.from===nid||e.to===nid).forEach(e=>refreshEdge(e));
+}
+
+// ── Punto de control arrastrable ────────────────────────
+function renderCP(e){
+  const cp=mk('circle',{cx:e.cx,cy:e.cy,r:5,class:'cp',
+    'data-cpeid':e.id});
+  CL.appendChild(cp);
+  cp.addEventListener('mousedown',ev=>{
+    ev.stopPropagation();
+    cpDrag={e,cp};
+  });
+  e.cpEl=cp;
+}
+
+function removeCP(eid){
+  const cp=CL.querySelector(`[data-cpeid="${eid}"]`);
+  if(cp)cp.parentNode.removeChild(cp);
+}
+
+// ════════════════════════════════════════════════════════
+//  DRAG nodos y puntos de control
+// ════════════════════════════════════════════════════════
+function attachNE(n){
+  n.el.addEventListener('mousedown',e=>{
+    if(e.shiftKey){handleShift(n);return;}
+    e.stopPropagation();selectNode(n);
+    const pt=svgP(e);drag={n,ox:n.x-pt.x,oy:n.y-pt.y};
+  });
+  n.el.addEventListener('dblclick',e=>{
+    e.stopPropagation();
+    const nv=prompt('Nombre:',n.label.replace('\n',' / '));
+    if(nv!==null){n.label=nv;const sv=prompt('Subtítulo:',n.sub);
+      if(sv!==null)n.sub=sv;saveH();refreshNode(n);}
+  });
+}
+
+svg.addEventListener('mousemove',e=>{
+  const pt=svgP(e);
+  if(drag){
+    drag.n.x=snap(pt.x+drag.ox);drag.n.y=snap(pt.y+drag.oy);
+    drag.n.el.setAttribute('transform',`translate(${drag.n.x},${drag.n.y})`);
+    refreshEdgesOf(drag.n.id);
+  }
+  if(cpDrag){
+    cpDrag.e.cx=snap(pt.x);cpDrag.e.cy=snap(pt.y);
+    refreshEdge(cpDrag.e);
+  }
+});
+svg.addEventListener('mouseup',()=>{
+  if(drag||cpDrag){saveH();drag=null;cpDrag=null;}
+});
+svg.addEventListener('click',()=>deselectAll());
+
+// ── Drag desde paleta ─────────────────────────────────
+let dropType=null;
+document.querySelectorAll('.pal').forEach(p=>{
+  p.addEventListener('dragstart',()=>{dropType=p.dataset.type;});
+});
+const wrap=document.getElementById('canvas-wrap');
+wrap.addEventListener('dragover',e=>e.preventDefault());
+wrap.addEventListener('drop',e=>{
+  e.preventDefault();if(!dropType)return;
+  const r=svg.getBoundingClientRect();
+  saveH();makeNode(dropType,(e.clientX-r.left)/zoom,(e.clientY-r.top)/zoom);
+  dropType=null;
+});
+
+// ════════════════════════════════════════════════════════
+//  SELECCIÓN
+// ════════════════════════════════════════════════════════
+function selectNode(n){deselectAll();sel=n;hilite(n);showProp(n);}
+function hilite(n){
+  const b=n.el.querySelector('.nbody');
+  if(b){b.setAttribute('stroke','#FFD600');b.setAttribute('stroke-width','3');}
+}
+function deselectAll(){
+  if(sel){refreshNode(sel);sel=null;}
+  if(esel){esel.el.classList.remove('esel');esel=null;}
+  document.getElementById('prop-form').style.display='none';
+  document.getElementById('no-sel').style.display='block';
+}
+function showProp(n){
+  document.getElementById('no-sel').style.display='none';
+  document.getElementById('prop-form').style.display='block';
+  document.getElementById('p-label').value=n.label.replace('\n',' / ');
+  document.getElementById('p-sub').value=n.sub;
+  document.getElementById('p-color').value=n.color;
+  document.getElementById('p-notes').value=n.notes;
+}
+function selectEdge(e){
+  if(esel)esel.el.classList.remove('esel');
+  esel=e;e.el.classList.add('esel');
+}
+
+// ════════════════════════════════════════════════════════
+//  CONEXIÓN
+// ════════════════════════════════════════════════════════
+function handleShift(n){
+  if(!cmode)return;
+  if(!conn){
+    conn=n;
+    const b=n.el.querySelector('.nbody');
+    if(b)b.setAttribute('stroke','#00E5FF');
+    document.getElementById('mode-label').textContent=`→ Shift+clic en destino...`;
+  } else if(conn.id!==n.id){
+    saveH();makeEdge(conn.id,n.id,getET());
+    refreshNode(conn);conn=null;
+    document.getElementById('mode-label').textContent='Modo: conexión';
+  }
+}
+
+function toggleConnMode(){
+  cmode=!cmode;conn=null;
+  const active=cmode;
+  document.getElementById('btn-conn').classList.toggle('active',active);
+  document.getElementById('btn-conn-tb').classList.toggle('active',active);
+  document.getElementById('mode-label').textContent=
+    cmode?'Modo: conexión (Shift+clic nodo A → B)':'Modo: mover';
+}
+document.getElementById('btn-conn').addEventListener('click',toggleConnMode);
+document.getElementById('btn-conn-tb').addEventListener('click',toggleConnMode);
+
+document.getElementById('btn-del-edge').addEventListener('click',()=>{
+  if(!esel)return;saveH();
+  removeCP(esel.id);
+  EL.removeChild(esel.el);
+  edges=edges.filter(e=>e.id!==esel.id);esel=null;
+});
+
+// Sincronizar selects de tipo
+['etype','etype-tb'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',function(){
+    ['etype','etype-tb'].forEach(oid=>{
+      if(oid!==id)document.getElementById(oid).value=this.value;
+    });
+  });
+});
+
+// ════════════════════════════════════════════════════════
+//  PROPIEDADES
+// ════════════════════════════════════════════════════════
+document.getElementById('btn-apply').addEventListener('click',()=>{
+  if(!sel)return;saveH();
+  sel.label=document.getElementById('p-label').value;
+  sel.sub=document.getElementById('p-sub').value;
+  sel.color=document.getElementById('p-color').value;
+  sel.notes=document.getElementById('p-notes').value;
+  refreshNode(sel);
+});
+document.getElementById('btn-del-node').addEventListener('click',()=>{
+  if(!sel)return;saveH();
+  NL.removeChild(sel.el);
+  edges=edges.filter(e=>{
+    if(e.from===sel.id||e.to===sel.id){
+      removeCP(e.id);if(e.el.parentNode)EL.removeChild(e.el);return false;
+    }return true;
+  });
+  nodes=nodes.filter(n=>n.id!==sel.id);sel=null;
+  document.getElementById('prop-form').style.display='none';
+  document.getElementById('no-sel').style.display='block';
+});
+
+// ════════════════════════════════════════════════════════
+//  ZOOM (rueda + botones)
+// ════════════════════════════════════════════════════════
+function setZoom(z){
+  zoom=Math.max(.2,Math.min(4,z));
+  svg.style.transform=`scale(${zoom})`;
+  svg.style.transformOrigin='0 0';
+  document.getElementById('zoom-label').textContent=Math.round(zoom*100)+'%';
+}
+document.getElementById('tb-zi').addEventListener('click',()=>setZoom(zoom+.15));
+document.getElementById('tb-zo').addEventListener('click',()=>setZoom(zoom-.15));
+document.getElementById('tb-zf').addEventListener('click',()=>setZoom(1));
+svg.addEventListener('wheel',e=>{
+  e.preventDefault();setZoom(zoom+(e.deltaY<0?.12:-.12));
+},{passive:false});
+
+// ════════════════════════════════════════════════════════
+//  MAPA Y GRID
+// ════════════════════════════════════════════════════════
+const mapImg=document.getElementById('map-img');
+document.getElementById('sld-op').addEventListener('input',function(){
+  document.getElementById('op-val').textContent=this.value+'%';
+  mapImg.setAttribute('opacity',this.value/100);
+});
+document.getElementById('btn-map').addEventListener('click',()=>{
+  mapOn=!mapOn;mapImg.style.display=mapOn?'':'none';
+});
+document.getElementById('btn-grid').addEventListener('click',()=>{
+  showGrid=!showGrid;
+  document.getElementById('gbg').setAttribute('opacity',showGrid?'.3':'0');
+});
+
+// ════════════════════════════════════════════════════════
+//  UNDO
+// ════════════════════════════════════════════════════════
+function serialize(){
+  return{
+    nodes:nodes.map(n=>({id:n.id,type:n.type,x:n.x,y:n.y,
+      label:n.label,sub:n.sub,color:n.color,notes:n.notes})),
+    edges:edges.map(e=>({id:e.id,from:e.from,to:e.to,etype:e.etype,
+      cx:e.cx,cy:e.cy})),
+    seq:idSeq
+  };
+}
+function loadState(s){
+  NL.innerHTML='';EL.innerHTML='';CL.innerHTML='';
+  nodes=[];edges=[];sel=null;esel=null;conn=null;
+  idSeq=s.seq||idSeq;
+  s.nodes.forEach(d=>{
+    const n={...d};nodes.push(n);
+    n.el=renderNode(n);NL.appendChild(n.el);attachNE(n);
+  });
+  s.edges.forEach(d=>{
+    const e={...d};edges.push(e);
+    e.el=renderEdge(e);EL.appendChild(e.el);renderCP(e);
+  });
+}
+function saveH(){hist.push(JSON.stringify(serialize()));if(hist.length>40)hist.shift();}
+document.getElementById('tb-undo').addEventListener('click',()=>{
+  if(!hist.length)return;loadState(JSON.parse(hist.pop()));
+});
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();
+    if(hist.length)loadState(JSON.parse(hist.pop()));}
+  if(e.key==='Delete'||e.key==='Backspace'){
+    if(sel&&document.activeElement.tagName!=='INPUT'&&
+       document.activeElement.tagName!=='TEXTAREA'){
+      document.getElementById('btn-del-node').click();}
+    if(esel)document.getElementById('btn-del-edge').click();
+  }
+});
+
+// ════════════════════════════════════════════════════════
+//  LIMPIAR
+// ════════════════════════════════════════════════════════
+document.getElementById('btn-clear').addEventListener('click',()=>{
+  if(!confirm('¿Limpiar todo el canvas?'))return;
+  saveH();loadState({nodes:[],edges:[],seq:idSeq});
+});
+
+// ════════════════════════════════════════════════════════
+//  PRESET — TOPOLOGÍA NEXA sobre el mapa
+//  Coordenadas ajustadas para mapa en x=80..1330, y=55..845
+// ════════════════════════════════════════════════════════
+document.getElementById('btn-preset').addEventListener('click',()=>{
+  saveH();loadState({nodes:[],edges:[],seq:1});idSeq=1;
+
+  // ── Capa superior: gestión (sobre el mapa, zona sin galerías) ──
+  const ws =makeNode('workstation', 200, 30,
+    {notes:'Interfaz del operador. F/UTP CAT6 → SW Core.'});
+  const sl =makeNode('slipstream',  540, 30,
+    {notes:'Servidor central Rajant InstaMesh. F/UTP CAT6 → SW Core.'});
+
+  // ── NODO CORE / SW CORE — único nodo (arriba izquierda del mapa) ──
+  const nc =makeNode('core_node',   185, 145,
+    {label:'NODO CORE\n/ SW CORE',sub:'IDF + switch central',
+     notes:'Nodo central: SW Core (gestión) + IDF principal (acceso FO).\nConecta Workstation, Slipstream y anillo FO hacia NODO-01 y NODO-02.'});
+
+  // ── NODO-02 — arriba derecha ──
+  const n2 =makeNode('nodo_idf',    980, 148,
+    {label:'NODO-02',sub:'IDF zona RB024 / Cx026',
+     notes:'Nodo de acceso zona noreste. Anillo FO desde NODO CORE.'});
+
+  // ── NODO-01 — abajo centro ──
+  const n1 =makeNode('nodo_idf',    565, 695,
+    {label:'NODO-01',sub:'IDF zona Cx023 / Ga500',
+     notes:'Nodo de acceso zona central-sur. Anillo FO desde NODO CORE.'});
+
+  // ── APs zona NODO CORE (galerías izquierda) ──
+  const hA =makeNode('hawk',        190, 295,
+    {label:'Hawk',sub:'FE1-5050 · zona SSFE',
+     notes:'Hawk en galería recta SSFE. F/UTP → NODO CORE.'});
+  const cA =makeNode('cardinal_ap', 280, 415,
+    {label:'Cardinal',sub:'AG1-5250 · Cx010',
+     notes:'Cardinal AP en intersección Cx010. Cubre curvatura / zona NLOS. F/UTP → NODO CORE.'});
+
+  // ── APs zona NODO-02 (galerías derecha-arriba) ──
+  const ap12=makeNode('hawk',       1090,195,
+    {label:'AP12 Hawk',sub:'FE1-5050',
+     notes:'Hawk AP12 zona RB024. F/UTP → NODO-02.'});
+  const ap07=makeNode('hawk',       855, 278,
+    {label:'AP07 Hawk',sub:'FE1-5050',
+     notes:'Hawk AP07 tramo recto galería. F/UTP → NODO-02.'});
+  const ap10=makeNode('hawk',       1055,318,
+    {label:'AP10 Hawk',sub:'FE1-5050',
+     notes:'Hawk AP10 tramo recto galería. F/UTP → NODO-02.'});
+  const ap05=makeNode('cardinal_ap',778, 375,
+    {label:'AP05 Cardinal',sub:'AG1-5250',
+     notes:'Cardinal AP05 en intersección. Cubre zona NLOS entre galerías. F/UTP → NODO-02.'});
+  const ap08=makeNode('cardinal_ap',955, 395,
+    {label:'AP08 Cardinal',sub:'AG1-5250',
+     notes:'Cardinal AP08 en cruce de galerías. F/UTP → NODO-02.'});
+  const ap11=makeNode('cardinal_ap',1048,435,
+    {label:'AP11 Cardinal',sub:'AG1-5250',
+     notes:'Cardinal AP11 en curva galería Cx024. F/UTP → NODO-02.'});
+  const ap09=makeNode('cardinal_ap',835, 498,
+    {label:'AP09 Cardinal',sub:'AG1-5250',
+     notes:'Cardinal AP09 en intersección Cx023/Cx021. F/UTP → NODO-02.'});
+
+  // ── APs zona NODO-01 (galerías centro-sur) ──
+  const ap01=makeNode('cardinal_ap',490, 498,
+    {label:'AP01 Cardinal',sub:'AG1-5250',
+     notes:'Cardinal AP01 en intersección central. F/UTP → NODO-01.'});
+  const ap02=makeNode('cardinal_ap',588, 548,
+    {label:'AP02 Cardinal',sub:'AG1-5250',
+     notes:'Cardinal AP02 en curvatura galería. F/UTP → NODO-01.'});
+  const ap03=makeNode('hawk',       678, 505,
+    {label:'AP03 Hawk',sub:'FE1-5050',
+     notes:'Hawk AP03 en tramo recto. F/UTP → NODO-01.'});
+  const ap04=makeNode('cardinal_ap',518, 605,
+    {label:'AP04 Cardinal',sub:'AG1-5250',
+     notes:'Cardinal AP04 en cruce galerías. F/UTP → NODO-01.'});
+  const ap06=makeNode('hawk',       698, 608,
+    {label:'AP06 Hawk',sub:'FE1-5050',
+     notes:'Hawk AP06 en tramo recto galería extracción. F/UTP → NODO-01.'});
+
+  // ── LHD ──
+  const lhd=makeNode('lhd',        695, 435,
+    {label:'LHD',sub:'Cardinal AG1-5250M',
+     notes:'Scoop eléctrico LHD.\nAntena Cardinal AG1-5250M. Roaming automático por RSSI.\nIP: 10.0.0.2 · 23 dBm · 4.8 dBi · 802.11ac 5GHz'});
+
+  // ════ CONEXIONES ════
+  // Gestión → NODO CORE
+  const e1=makeEdge(ws.id, nc.id,'utp');
+  if(e1){e1.cx=200;e1.cy=88;refreshEdge(e1);}
+  const e2=makeEdge(sl.id, nc.id,'utp');
+  if(e2){e2.cx=390;e2.cy=88;refreshEdge(e2);}
+
+  // Anillo FO (curvas suaves siguiendo el mapa)
+  const fo1=makeEdge(nc.id,n2.id,'fo');
+  if(fo1){fo1.cx=600;fo1.cy=100;refreshEdge(fo1);}
+  const fo2=makeEdge(nc.id,n1.id,'fo');
+  if(fo2){fo2.cx=300;fo2.cy=450;refreshEdge(fo2);}
+
+  // NODO CORE → sus APs
+  makeEdge(nc.id,hA.id,'utp');
+  makeEdge(nc.id,cA.id,'utp');
+
+  // NODO-02 → sus APs
+  makeEdge(n2.id,ap12.id,'utp');
+  makeEdge(n2.id,ap07.id,'utp');
+  makeEdge(n2.id,ap10.id,'utp');
+  makeEdge(n2.id,ap05.id,'utp');
+  makeEdge(n2.id,ap08.id,'utp');
+  makeEdge(n2.id,ap11.id,'utp');
+  makeEdge(n2.id,ap09.id,'utp');
+
+  // NODO-01 → sus APs
+  makeEdge(n1.id,ap01.id,'utp');
+  makeEdge(n1.id,ap02.id,'utp');
+  makeEdge(n1.id,ap03.id,'utp');
+  makeEdge(n1.id,ap04.id,'utp');
+  makeEdge(n1.id,ap06.id,'utp');
+
+  // WiFi representativos (APs cercanos al LHD)
+  makeEdge(ap03.id,lhd.id,'wifi');
+  makeEdge(ap06.id,lhd.id,'wifi');
+  makeEdge(ap09.id,lhd.id,'wifi');
+});
+
+// ════════════════════════════════════════════════════════
+//  EXPORT
+// ════════════════════════════════════════════════════════
+document.getElementById('btn-export').addEventListener('click',()=>{
+  const clone=svg.cloneNode(true);
+  clone.removeAttribute('style');
+  clone.querySelector('#gbg')?.setAttribute('opacity','0');
+  // Ocultar puntos de control en el export
+  const cpLayer=clone.querySelector('#cl');
+  if(cpLayer)cpLayer.innerHTML='';
+  const str=new XMLSerializer().serializeToString(clone);
+  document.getElementById('svg-out').value=str;
+  document.getElementById('modal').classList.add('open');
+});
+document.getElementById('btn-copy').addEventListener('click',()=>{
+  navigator.clipboard.writeText(document.getElementById('svg-out').value)
+    .then(()=>alert('SVG copiado al portapapeles ✓'));
+});
+document.getElementById('btn-mclose').addEventListener('click',()=>{
+  document.getElementById('modal').classList.remove('open');
+});
+
+// ── Auto-cargar preset ───────────────────────────────
+document.getElementById('btn-preset').click();
+</script>
+</body>
+</html>

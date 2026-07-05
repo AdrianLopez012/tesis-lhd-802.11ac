@@ -1,0 +1,4 @@
+flow_id,flow_name,protocol,tx_pkts,rx_pkts,tx_bytes,rx_bytes,delay_mean_ms,delay_p95_ms,jitter_mean_ms,jitter_p95_ms,pdr_pct,plr_pct,ip_throughput_mbps,payload_goodput_mbps,codec_delay_ms,total_e2e_ms,total_e2e_p95_ms,dst_port
+1,Comandos,UDP,145019,145018,22622964,22622808,1.23297,3.5,0.800575,2.25,99.9993,0.000689565,0.609372,0.499997,0,1.23297,3.5,6000
+2,Telemetria,UDP,18562,18553,4232136,4230084,1.22863,3.5,1.36544,4.75,99.9515,0.0484862,0.11395,0.0999558,0,1.22863,3.5,7000
+3,Video,UDP,1060590,1060541,1514522520,1514452548,0.226987,0.5,0.0825702,0.25,99.9954,0.00462007,40.7981,39.9981,35,35.227,35.5,5000

@@ -1,0 +1,171 @@
+{
+  "_comment": "Parámetros de diseño unificados — Simulación v8.0 LHD Teleop Nexa Cerro Lindo NV1640",
+  "_version": "8.0",
+  "_fecha": "2026-05-24",
+
+  "topologia": {
+    "descripcion": "5 Hawks + 1 Cardinal fijo. H4 reubicado a ramal Desmonte (v8).",
+    "n_hawks_real": 5,
+    "nodos": [
+      {"id": "H0",         "funcion": "Hawk fijo", "segmento": "galeria_principal",  "x": 0.0,   "y": 0.0,  "z": 2.0, "station_m": 0.0},
+      {"id": "H1",         "funcion": "Hawk fijo", "segmento": "galeria_principal",  "x": 48.9,  "y": 0.0,  "z": 2.0, "station_m": 48.9},
+      {"id": "H2",         "funcion": "Hawk fijo", "segmento": "galeria_principal",  "x": 183.7, "y": 0.0,  "z": 2.0, "station_m": 183.7},
+      {"id": "CardFijo",   "funcion": "Cardinal Breadcrumb", "segmento": "ramal_bp", "x": 183.7, "y": 30.0, "z": 2.0, "station_m": 213.7},
+      {"id": "H3",         "funcion": "Hawk fijo", "segmento": "galeria_principal",  "x": 318.5, "y": 0.0,  "z": 2.0, "station_m": 374.4},
+      {"id": "H4",         "funcion": "Hawk fijo", "segmento": "ramal_desmonte",     "x": 318.5, "y": 25.9, "z": 2.0, "station_m": 400.3}
+    ],
+    "covered_route_length_m": 426.3,
+    "operating_cycle_distance_m": 482.1,
+    "_nota_h4": "H4 reubicado de posición ficticia (405.1,0) a (318.5,25.9) dentro del ramal Desmonte",
+    "_nota_cardfijo": "Cardinal fijo reubicado a 30m dentro del ramal BP para cobertura Breakpoint"
+  },
+
+  "equipos": {
+    "hawk": {
+      "modelo": "Rajant FE1-5050",
+      "tx_power_dbm": 30.0,
+      "ganancia_antena_dbi": 11.0,
+      "altura_montaje_m": 2.0,
+      "estandar": "IEEE 802.11ac",
+      "ancho_banda_mhz": 40,
+      "mimo": "2x2",
+      "_ns3_mimo": "Antennas=2, MaxSupportedTxSpatialStreams=2, MaxSupportedRxSpatialStreams=2"
+    },
+    "cardinal": {
+      "modelo": "Rajant AG1-5250M",
+      "tx_power_dbm": 23.0,
+      "ganancia_antena_dbi": 4.8,
+      "altura_montaje_m": 1.0,
+      "mimo": "2x2",
+      "rol_lhd": "STA móvil",
+      "rol_fijo": "AP Breadcrumb en ramal BP"
+    }
+  },
+
+  "modelo_propagacion": {
+    "tipo": "Two-slope tunnel",
+    "frecuencia_hz": 5.0e9,
+    "exponente_los": 1.9,
+    "exponente_nlos": 3.4,
+    "distancia_breakpoint_m": 40.0,
+    "penalizacion_nlos_db": 10.0,
+    "shadowing_los_sigma_db": 5.0,
+    "shadowing_nlos_sigma_db": 7.0,
+    "shadowing_ns3": false,
+    "distancia_ns3": "RouteDistance 2D (suma de segmentos de galería; no euclidiana, no solo |Δx|)",
+    "_nota_shadowing": "Desactivado — no existe modelo espacialmente correlado para túnel en ns-3.40",
+    "_nota_perdidas_sistema": "Las pérdidas de sistema (cables, conectores) quedan absorbidas en la calibración del modelo two-slope contra TamoGraph; no se aplican por separado en ns-3 para evitar doble penalización",
+    "_referencia_calibracion": "TamoGraph mediciones Nexa Cerro Lindo 2026; L_sys=9.4dB incluido en ajuste de n1=1.9, n2=3.4"
+  },
+
+  "zonas_nlos": [
+    {"id": "Giro-D-GaleriaPrincipal",  "xmin": 38.9,  "xmax": 58.9,  "ymin": -2.0, "ymax": 2.0,  "loss_db": 10},
+    {"id": "Giro-D-RamalBP",           "xmin": 173.7, "xmax": 193.7, "ymin": -2.0, "ymax": 2.0,  "loss_db": 10},
+    {"id": "Transicion-BP",            "xmin": 178.7, "xmax": 188.7, "ymin": 0.0,  "ymax": 55.9, "loss_db": 10},
+    {"id": "Maniobra-Breakpoint",      "xmin": 179.7, "xmax": 187.7, "ymin": 40.0, "ymax": 55.9, "loss_db": 10},
+    {"id": "Retoma-GaleriaPrincipal",  "xmin": 178.7, "xmax": 188.7, "ymin": 0.0,  "ymax": 5.0,  "loss_db": 10},
+    {"id": "Giro-D-RamalDesmonte",     "xmin": 308.5, "xmax": 328.5, "ymin": -2.0, "ymax": 2.0,  "loss_db": 10},
+    {"id": "Transicion-Desmonte",      "xmin": 313.5, "xmax": 323.5, "ymin": 0.0,  "ymax": 51.8, "loss_db": 10}
+  ],
+  "_nota_nlos": "Regiones 2D rectangulares (xmin,xmax)×(ymin,ymax). NLOS activo solo en escenarios mobility. Bidireccional.",
+
+  "trafico": {
+    "video": {
+      "tasa_mbps": 40.0,
+      "codec": "H.264",
+      "retardo_codec_ms": 35.0,
+      "tamano_paquete_bytes": 1400,
+      "puerto_dst": 5000,
+      "tos_hex": "0xB8",
+      "dscp": "EF (Expedited Forwarding)",
+      "wmm_tid": 5,
+      "wmm_up": 5,
+      "wmm_ac": "AC_VI"
+    },
+    "comandos": {
+      "tasa_mbps": 0.5,
+      "tamano_paquete_bytes": 128,
+      "puerto_dst": 6000,
+      "tos_hex": "0xC0",
+      "dscp": "CS6 (Network Control)",
+      "wmm_tid": 7,
+      "wmm_up": 6,
+      "wmm_ac": "AC_VO",
+      "on_time_s": 1,
+      "off_time_s": 0
+    },
+    "telemetria": {
+      "tasa_mbps": 0.1,
+      "tamano_paquete_bytes": 200,
+      "puerto_dst": 7000,
+      "tos_hex": "0x00",
+      "dscp": "BE (Best Effort)",
+      "wmm_tid": 0,
+      "wmm_up": 0,
+      "wmm_ac": "AC_BE",
+      "on_time_s": 1,
+      "off_time_s": 0,
+      "_correccion_v8": "OnTime=1/OffTime=0 → 0.1 Mbps continuo real (v7 tenía 0.01 Mbps por duty cycle 10%)"
+    }
+  },
+
+  "movilidad": {
+    "velocidad_nominal_ms": 2.22,
+    "velocidad_rapida_ms": 3.33,
+    "lhd_altura_m": 1.0,
+    "segmentos_recorrido": [
+      {"id": "arranque",          "dist_m": 23.0,  "dx": 1, "dy": 0, "pausa_s": 0},
+      {"id": "acceso_galeria",    "dist_m": 25.9,  "dx": 1, "dy": 0, "pausa_s": 0},
+      {"id": "LOS1",              "dist_m": 134.8, "dx": 1, "dy": 0, "pausa_s": 0},
+      {"id": "ramal_bp_entrada",  "dist_m": 25.9,  "dx": 0, "dy": 1, "pausa_s": 0},
+      {"id": "acceso_bp",         "dist_m": 30.0,  "dx": 0, "dy": 1, "pausa_s": 15},
+      {"id": "retroceso_bp",      "dist_m": 30.0,  "dx": 0, "dy": -1,"pausa_s": 0},
+      {"id": "ramal_bp_salida",   "dist_m": 25.9,  "dx": 0, "dy": -1,"pausa_s": 0},
+      {"id": "LOS2",              "dist_m": 134.8, "dx": 1, "dy": 0, "pausa_s": 0},
+      {"id": "ramal_des_entrada", "dist_m": 25.9,  "dx": 0, "dy": 1, "pausa_s": 0},
+      {"id": "desmonte",          "dist_m": 25.9,  "dx": 0, "dy": 1, "pausa_s": 30}
+    ]
+  },
+
+  "handover": {
+    "max_missed_beacons": 3,
+    "beacon_interval_ms": 102.4,
+    "assoc_request_timeout_ms": 50,
+    "ventana_handover_ms": 307.2,
+    "_nota": "ns-3 StaWifiMac reactivo. Rajant InstaMesh proactivo <15ms (limitación documentada)"
+  },
+
+  "kpis": {
+    "video_e2e_media_ms":       {"umbral": 150,  "tipo": "max", "nota": "ITU-T G.1010"},
+    "video_plr_pct":            {"umbral": 1.0,  "tipo": "max", "nota": "ITU-T G.1010"},
+    "video_payload_goodput_mbps": {"umbral": 38.0, "tipo": "min", "nota": "4 cámaras H.264 @ 10Mbps c/u"},
+    "video_jitter_p95_ms":      {"umbral": 10.0, "tipo": "max", "nota": "ITU-T G.1010"},
+    "cmd_owd_media_ms":         {"umbral": 20.0, "tipo": "max", "nota": "OWD = RTT/2; RTT_req=40ms"},
+    "cmd_plr_pct":              {"umbral": 0.1,  "tipo": "max", "nota": "Hasan et al. 2023"}
+  },
+  "_nota_kpis": "KPI throughput evaluado sobre payload_goodput_mbps (carga útil de aplicación). Mismo umbral en C++, Python, gráficas y tesis.",
+
+  "escenarios": {
+    "mobility_5hawks_real":  {"descripcion": "PRINCIPAL tesis", "n_hawks": 5, "posiciones": "reales_v8", "vel_ms": 2.22, "video_mbps": 40.0, "nlos": true},
+    "mobility_4hawks_100m":  {"descripcion": "Comparativo 4H",  "n_hawks": 4, "posiciones": [0,100,200,300],         "vel_ms": 2.22, "video_mbps": 40.0, "nlos": true},
+    "mobility_5hawks_100m":  {"descripcion": "Comparativo 5H",  "n_hawks": 5, "posiciones": [0,100,200,300,400],     "vel_ms": 2.22, "video_mbps": 40.0, "nlos": true},
+    "lhd_rapido_mobility":   {"descripcion": "Sensibilidad vel","n_hawks": 5, "posiciones": "reales_v8", "vel_ms": 3.33, "video_mbps": 40.0, "nlos": true},
+    "video_20mbps_mobility": {"descripcion": "Sensibilidad BR", "n_hawks": 5, "posiciones": "reales_v8", "vel_ms": 2.22, "video_mbps": 20.0, "nlos": true},
+    "baseline":              {"descripcion": "Referencia ctrl", "n_hawks": 5, "posiciones": "reales_v8", "vel_ms": 2.22, "video_mbps": 40.0, "nlos": false}
+  },
+  "_nota_escenarios": "Escenario principal: mobility_5hawks_real. baseline solo como referencia controlada (recorrido lineal, NLOS off).",
+
+  "arquitectura_red": {
+    "descripcion": "Nodos fijos como APs IEEE 802.11ac conectados por backbone CSMA 1Gbps (Bridge L2).",
+    "limitacion_routing": "La simulación no reproduce la lógica propietaria de enrutamiento multipath ni los mecanismos internos de movilidad y auto-recuperación de Rajant InstaMesh. Los nodos fijos se representan como APs estándar con reenvío de capa 2.",
+    "_correccion_v8": "Eliminada limitación incorrecta 'OLSR L3 vs InstaMesh L2' — el código usa BridgeHelper (L2), no OLSR."
+  },
+
+  "simulacion": {
+    "sim_time_s": 300,
+    "t_start_s": 3.0,
+    "seeds": [1, 2, 3],
+    "version_ns3": "3.40",
+    "sufijo_outputs": "_v8_"
+  }
+}

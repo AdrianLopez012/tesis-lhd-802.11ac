@@ -1,0 +1,135 @@
+{
+  "_comment": "Parámetros de diseño unificados — Simulación v7.0 LHD Teleop Nexa Cerro Lindo NV1640",
+  "_version": "7.0",
+  "_fecha": "2026-05-24",
+
+  "topologia": {
+    "n_hawks_real": 5,
+    "hawk_posiciones_m": [0.0, 48.9, 183.7, 314.5, 405.1],
+    "cardinal_fijo_pos_m": 183.7,
+    "covered_route_length_m": 426.3,
+    "operating_cycle_distance_m": 482.1,
+    "separacion_media_hawks_m": 84.0
+  },
+
+  "equipos": {
+    "hawk": {
+      "modelo": "Rajant FE1-5050",
+      "tx_power_dbm": 30.0,
+      "ganancia_antena_dbi": 11.0,
+      "altura_montaje_m": 2.0,
+      "estandar": "IEEE 802.11ac",
+      "ancho_banda_mhz": 40,
+      "mimo": "2x2"
+    },
+    "cardinal": {
+      "modelo": "Rajant AG1-5250M",
+      "tx_power_dbm": 23.0,
+      "ganancia_antena_dbi": 4.8,
+      "altura_montaje_m": 1.0,
+      "rol_lhd": "STA móvil",
+      "rol_fijo": "AP breadcrumb en intersección BP"
+    }
+  },
+
+  "modelo_propagacion": {
+    "tipo": "Two-slope tunnel",
+    "frecuencia_hz": 5.0e9,
+    "exponente_los": 1.9,
+    "exponente_nlos": 3.4,
+    "distancia_breakpoint_m": 40.0,
+    "penalizacion_nlos_db": 10.0,
+    "shadowing_los_sigma_db": 5.0,
+    "shadowing_nlos_sigma_db": 7.0,
+    "shadowing_ns3": false,
+    "_nota_shadowing": "Desactivado en simulación dinámica — falta modelo espacialmente correlado para túnel"
+  },
+
+  "trafico": {
+    "video": {
+      "tasa_mbps": 40.0,
+      "codec": "H.264",
+      "retardo_codec_ms": 35.0,
+      "tamano_paquete_bytes": 1400,
+      "puerto_dst": 5000,
+      "tos_hex": "0xB8",
+      "dscp": "EF (Expedited Forwarding)"
+    },
+    "comandos": {
+      "tasa_mbps": 0.5,
+      "tamano_paquete_bytes": 128,
+      "puerto_dst": 6000,
+      "tos_hex": "0xC0",
+      "dscp": "CS6 (Network Control)"
+    },
+    "telemetria": {
+      "tasa_mbps": 0.1,
+      "tamano_paquete_bytes": 200,
+      "puerto_dst": 7000,
+      "tos_hex": "0x00",
+      "dscp": "BE (Best Effort)"
+    }
+  },
+
+  "movilidad": {
+    "velocidad_nominal_ms": 2.22,
+    "velocidad_rapida_ms": 3.33,
+    "lhd_altura_m": 1.0,
+    "waypoints_recorrido_real": [
+      {"segmento": "arranque", "dist_m": 23.0},
+      {"segmento": "acceso_galeria", "dist_m": 25.9},
+      {"segmento": "LOS-1", "dist_m": 134.8},
+      {"segmento": "ramal_BP", "dist_m": 25.9},
+      {"segmento": "acceso_BP", "dist_m": 30.0, "pausa_s": 15},
+      {"segmento": "retroceso_BP", "dist_m": 30.0},
+      {"segmento": "salida_ramal_BP", "dist_m": 25.9},
+      {"segmento": "LOS-2", "dist_m": 134.8},
+      {"segmento": "ramal_desmonte", "dist_m": 25.9},
+      {"segmento": "desmonte", "dist_m": 25.9, "pausa_s": 30}
+    ]
+  },
+
+  "zonas_nlos": [
+    {"nombre": "Giro-D-GaleriaPrincipal", "inicio_m": 38.9,  "fin_m": 58.9},
+    {"nombre": "Giro-D-RamalBP",          "inicio_m": 173.7, "fin_m": 193.7},
+    {"nombre": "Giro-D-AccesoBP",         "inicio_m": 199.6, "fin_m": 219.6},
+    {"nombre": "Maniobra-Breakpoint",     "inicio_m": 219.6, "fin_m": 249.6},
+    {"nombre": "Retoma-GaleriaPrincipal", "inicio_m": 234.4, "fin_m": 254.4},
+    {"nombre": "Giro-D-RamalDesmonte",   "inicio_m": 369.2, "fin_m": 389.2},
+    {"nombre": "Giro-I-Desmonte",        "inicio_m": 395.1, "fin_m": 415.1}
+  ],
+
+  "handover": {
+    "max_missed_beacons": 3,
+    "beacon_interval_ms": 102.4,
+    "assoc_request_timeout_ms": 50,
+    "ventana_handover_ms": 307.2,
+    "_nota": "ns-3 StaWifiMac reactivo. Rajant InstaMesh proactivo <15ms (limitación documentada)"
+  },
+
+  "kpis": {
+    "video_e2e_media_ms":   {"umbral": 150,  "tipo": "max"},
+    "video_plr_pct":        {"umbral": 1.0,  "tipo": "max"},
+    "video_tput_mbps":      {"umbral": 38.0, "tipo": "min"},
+    "video_jitter_p95_ms":  {"umbral": 10.0, "tipo": "max"},
+    "cmd_owd_media_ms":     {"umbral": 20.0, "tipo": "max"},
+    "cmd_plr_pct":          {"umbral": 0.1,  "tipo": "max"}
+  },
+
+  "escenarios": {
+    "baseline":         {"n_hawks": 5, "posiciones": "reales", "vel_ms": 2.22, "video_mbps": 40.0},
+    "lhd_rapido":       {"n_hawks": 5, "posiciones": "reales", "vel_ms": 3.33, "video_mbps": 40.0},
+    "video_20mbps":     {"n_hawks": 5, "posiciones": "reales", "vel_ms": 2.22, "video_mbps": 20.0},
+    "sep_100m":         {"n_hawks": 4, "posiciones": [0,100,200,300],          "vel_ms": 2.22, "video_mbps": 40.0},
+    "sep_100m_5hawks":  {"n_hawks": 5, "posiciones": [0,100,200,300,400],      "vel_ms": 2.22, "video_mbps": 40.0},
+    "mobility":         {"n_hawks": 5, "posiciones": "reales", "vel_ms": 2.22, "video_mbps": 40.0, "nlos": true}
+  },
+
+  "simulacion": {
+    "sim_time_s": 300,
+    "t_start_s": 3.0,
+    "seeds": [1, 2, 3],
+    "version_ns3": "3.40",
+    "sufijo_outputs": "_v7_"
+  }
+}

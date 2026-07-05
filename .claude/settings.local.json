@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Adrian Lopez/Downloads/**)",
+      "Read(//c/Users/Adrian Lopez/Documents/**)",
+      "Bash(python topologia_blockcaving.py)",
+      "Bash(wsl *)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
