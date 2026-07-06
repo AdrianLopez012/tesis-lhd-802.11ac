@@ -87,7 +87,10 @@ BG="#F7F5EF"; ROCK="#EDE9DF"; INK="#2B2B28"
 C_PROD="#2E6FB0"; C_PROD_ED="#1B4C7E"
 C_RAMPA="#C08422"; C_RAMPA_ED="#8A5D12"
 C_DRAW="#1E9E77"; C_DRAW_ED="#0C5B41"; C_BOT="#33322E"
-W_PROD=5.5; W_RAMPA=5.0
+# Anchos reales del plano AutoCAD: SEC. 4X4 = galería de 4 m de ancho.
+# R4.5 = radio de curva 4.5 m en los codos del camino.
+W_PROD=4.0; W_RAMPA=4.0   # sección 4x4 m (dato del plano)
+RADIO_CURVA=4.5           # R4.5 m (dato del plano)
 
 plt.rcParams.update({"font.family":"DejaVu Sans","axes.edgecolor":INK,
     "axes.linewidth":1.1,"text.color":INK,"axes.labelcolor":INK,
@@ -138,8 +141,8 @@ for g in [GAL_1,GAL_2,CRU_SUP,CRU_INF]+SUBE_BOT:
 
 # costillas El Teniente: dos por drawbell, convergen al centro.
 for c in DBELLS:
-    ribbon(ax,c["seg1"],W_PROD*0.85,C_PROD,C_PROD_ED,z=3)
-    ribbon(ax,c["seg2"],W_PROD*0.85,C_PROD,C_PROD_ED,z=3)
+    ribbon(ax,c["seg1"],W_PROD,C_PROD,C_PROD_ED,z=3)
+    ribbon(ax,c["seg2"],W_PROD,C_PROD,C_PROD_ED,z=3)
 for c in DBELLS:
     # drawbell común (rombo gris) al centro
     db=c["db"]
@@ -184,8 +187,8 @@ lg.get_frame().set_facecolor("#FFFFFF")
 ax.set_aspect("equal"); ax.grid(True,color="#D8D3C6",lw=0.5,alpha=0.7,zorder=0)
 ax.set_xlabel("Distancia X (m)",fontsize=11); ax.set_ylabel("Distancia Y (m)",fontsize=11)
 ax.set_title("Nivel de producción NV1640 — Nexa Cerro Lindo\n"
-             "Zona de teleoperación LHD (geometría regularizada, escala 1:1)",
-             fontsize=14,fontweight="bold",pad=14)
+             "Zona de teleoperación LHD · sección galería 4×4 m · R giro 4.5 m · escala 1:1",
+             fontsize=13,fontweight="bold",pad=14)
 ax.set_xlim(min(allx)-40,max(allx)+40); ax.set_ylim(Y_BASE-40,Y_TOP+45)
 
 plt.tight_layout()
