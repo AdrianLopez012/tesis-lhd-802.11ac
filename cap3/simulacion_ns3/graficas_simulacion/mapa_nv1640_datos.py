@@ -1,58 +1,72 @@
 """
-Geometría NV1640 — EDITADA POR EL USUARIO en editor_mapa_nv1640.html (2026-07-06)
-=================================================================================
-Fuente única de verdad de la geometría real de la zona de teleoperación.
-Exportada del editor visual (escala 1 m/px). Coordenadas en METROS.
-
-Estructura:
-  - 3 galerías de producción verticales (X=0, 26, 52) de ~135 m + cruceros.
-  - Costillas en espina de pescado (layout El Teniente) hacia los drawpoints.
-  - 10 drawbells (mineral compartido) + 22 drawpoints en pares.
-  - Rampa de acceso con 2 curvas (entra abajo-izq, sube a la zona) + rama inferior.
+Geometría NV1640 — REGULARIZADA a partir de la referencia del usuario (2026-07-06)
+==================================================================================
+El usuario dio una referencia (trazos aproximados en editor_mapa_nv1640.html).
+Aquí se REGULARIZA en geometría limpia y coherente, respetando la estructura:
+  - 3 galerías de producción verticales paralelas (X=0, 26, 52), largo 134.85 m.
+  - Cruceros superior e inferior que las unen.
+  - Layout EL TENIENTE: en cada nivel, un drawbell AL CENTRO entre dos galerías
+    y sus dos drawpoints a los COSTADOS (uno por galería), unidos por costillas.
+  - Rampa de acceso suave: entra abajo-izquierda, sube y llega a la galería.
   - 2 botaderos arriba (descarga).
 
-Este módulo solo define los datos; plano_nv1640_pro.py los dibuja.
-Marca {'curva': True} en un punto = ese vértice es curvo (control en 'c').
+Todo parametrizado; cambiar el bloque PARÁMETROS reescala/reordena todo.
+Genera geometría en METROS. plano_nv1640_pro.py la dibuja.
 """
+import numpy as np
 
-# Cada camino: dict con tipo y lista de puntos (x, y). Punto curvo lleva 'c'=(cx,cy).
-PRODUCCION = [
-    [(-74.9,135.8),(0.0,134.8),(0.0,0.0),(-24.1,-0.7)],
-    [(26.0,0.0),(26.0,134.8),(25.1,161.7)],
-    [(0.0,134.8),(52.0,134.8),(52.0,0.0)],
-    [(0.0,0.0),(52.0,0.0)],
-    [(0.0,134.8),(0.0,160.8)],
-    [(1.0,115.7),(11.4,119.7),(25.1,124.7)],
-    [(1.0,96.6),(13.9,100.5),(25.8,103.5)],
-    [(0.5,76.2),(13.7,80.4),(25.6,83.6)],
-    [(0.5,55.5),(14.2,59.0),(26.6,62.3)],
-    [(-0.3,34.2),(14.4,38.1),(25.8,41.4)],
-    [(0.5,16.0),(13.2,16.5)],
-    [(25.8,103.5),(40.5,106.7),(51.9,109.3)],
-    [(25.6,83.6),(40.5,86.8),(53.0,90.3)],
-    [(26.6,62.3),(40.1,65.4),(53.0,67.4)],
-    [(25.8,41.4),(39.8,44.0),(51.5,46.6)],
-    [(25.6,25.2),(40.1,27.4),(51.5,29.8)],
-    [(26.0,15.7),(39.8,15.5)],
-]
+# ---------------- PARÁMETROS (metros) ----------------
+LARGO_CALLE = 134.85          # largo galerías de producción (dato real)
+SEP         = 25.98           # separación entre galerías (dato real)
+X = [0.0, SEP, 2*SEP]         # x de las 3 galerías
+YB, YT = 0.0, LARGO_CALLE     # base y tope de las galerías
+N_NIV = 6                     # niveles de drawbells a lo largo de la galería
+Y0, Y1 = 16.0, LARGO_CALLE-14 # rango vertical de los drawbells
+ANG_COSTILLA = 55.0           # grado de inclinación de las costillas (° vs horizontal)
+COSTILLA_LEN = 11.0           # largo del ramal de acceso al drawpoint (m)
+RAMPA_LEN_INF = 176.0         # largo de la rama inferior de la rampa
+BOT_DY = 30.0                 # altura de los botaderos sobre el tope
 
-# Rampas: (punto, ..., con curvas donde corresponde)
+# ---------------- GALERÍAS + CRUCEROS ----------------
+PRODUCCION = []
+for x in X:                                   # 3 calles verticales
+    PRODUCCION.append([(x,YB),(x,YT)])
+PRODUCCION.append([(X[0],YT),(X[2],YT)])      # crucero superior
+PRODUCCION.append([(X[0],YB),(X[2],YB)])      # crucero inferior
+
+# ---------------- DRAWBELLS (centro) + DRAWPOINTS (costados) + COSTILLAS ----------------
+# Las costillas salen INCLINADAS (ANG_COSTILLA) desde la galería hacia el drawpoint,
+# y el drawbell queda al centro entre las dos costillas enfrentadas (El Teniente).
+DRAWBELLS=[]; DRAWPOINTS=[]
+ys = np.linspace(Y0, Y1, N_NIV)
+centros = [SEP*0.5, SEP*1.5]
+calles_par = [(X[0],X[1]), (X[1],X[2])]
+a = np.radians(ANG_COSTILLA)
+dxc = COSTILLA_LEN*np.cos(a)   # avance horizontal de la costilla
+dyc = COSTILLA_LEN*np.sin(a)   # avance vertical = inclinación de la costilla
+for y in ys:
+    for (cx,(xa,xb)) in zip(centros, calles_par):
+        # drawbell al centro, a la altura y
+        DRAWBELLS.append((cx,y))
+        # drawpoints: junto al drawbell (uno a cada lado), misma altura
+        dpa=(cx-2.5, y); dpb=(cx+2.5, y)
+        DRAWPOINTS.append(dpa); DRAWPOINTS.append(dpb)
+        # costillas INCLINADAS: arrancan de la galería más abajo y suben en
+        # diagonal hasta el drawpoint (el grado de inclinación queda en el ramal)
+        PRODUCCION.append([(xa, y-dyc), dpa])   # desde galería izq sube al drawpoint izq
+        PRODUCCION.append([(xb, y-dyc), dpb])   # desde galería der sube al drawpoint der
+
+# ---------------- RAMPAS DE ACCESO ----------------
+# Rampa principal: entra abajo-izquierda, sube en curva y llega al TOPE de la
+# galería (arriba) — por donde ingresa el LHD.  Rama inferior: acceso por abajo.
 RAMPAS = [
-    {"pts":[(-254.8,-31.8),(-225.2,-24.4),(-176.4,-24.1),(-175.9,59.5),
-            (-164.2,73.3),(-125.4,74.6),(-74.9,135.8)], "curvas":[3,5]},
-    {"pts":[(-24.1,-0.7),(-176.4,0.6)], "curvas":[]},
+    # rampa superior: sube por la izquierda y llega al tope de la galería (curva suave)
+    {"pts":[(-RAMPA_LEN_INF,-28.0),(-RAMPA_LEN_INF,YT),(X[0],YT)], "curvas":[1]},
+    # rama inferior: acceso horizontal a la galería por abajo
+    {"pts":[(-RAMPA_LEN_INF,-28.0),(-RAMPA_LEN_INF,0.0),(X[0],0.0)], "curvas":[1]},
 ]
 
-DRAWBELLS = [
-    (11.7,120.2),(13.7,100.8),(13.9,80.7),(13.9,59.5),(14.9,37.6),
-    (40.5,106.3),(40.1,87.0),(40.2,65.3),(40.0,43.9),(39.9,27.3),
-]
-
-DRAWPOINTS = [
-    (12.9,37.1),(16.4,38.1),(12.7,58.5),(16.0,59.1),(12.0,79.9),(15.2,81.0),
-    (12.5,100.3),(15.6,100.6),(10.3,118.9),(13.3,120.0),(13.2,16.4),(40.0,15.4),
-    (38.8,27.1),(41.2,27.5),(39.1,44.0),(40.8,44.4),(39.0,64.9),(41.4,65.6),
-    (39.3,86.7),(41.4,87.2),(38.8,105.8),(41.5,106.7),
-]
-
-BOTADEROS = [(0.0,164.8),(24.8,165.7)]
+# ---------------- BOTADEROS (arriba) + tramos de subida ----------------
+BOTADEROS = [(X[0], YT+BOT_DY), (X[2], YT+BOT_DY)]
+PRODUCCION.append([(X[0],YT),(X[0],YT+BOT_DY-4)])
+PRODUCCION.append([(X[2],YT),(X[2],YT+BOT_DY-4)])
