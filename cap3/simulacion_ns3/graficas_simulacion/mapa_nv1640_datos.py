@@ -68,6 +68,7 @@ RAMPAS = [
 ]
 
 # ---------------- BOTADEROS (arriba) + tramos de subida ----------------
-BOTADEROS = [(X[0], YT+BOT_DY), (X[2], YT+BOT_DY)]
+# Uno a la izquierda (sobre galería 1) y el otro AL MEDIO (sobre galería central).
+BOTADEROS = [(X[0], YT+BOT_DY), (X[1], YT+BOT_DY)]
 PRODUCCION.append([(X[0],YT),(X[0],YT+BOT_DY-4)])
-PRODUCCION.append([(X[2],YT),(X[2],YT+BOT_DY-4)])
+PRODUCCION.append([(X[1],YT),(X[1],YT+BOT_DY-4)])
