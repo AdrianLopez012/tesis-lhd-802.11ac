@@ -117,7 +117,7 @@ leg=[Line2D([0],[0],color=C_RAMPA,lw=8,label="Rampa de acceso"),
      Line2D([0],[0],color=C_PROD,lw=8,label="Galería de producción"),
      Line2D([0],[0],marker="o",color="none",markerfacecolor=C_DRAW,markeredgecolor=C_DRAW_ED,markersize=11,label="Drawpoint (extracción)"),
      Line2D([0],[0],marker="D",color="none",markerfacecolor=C_BELL,markeredgecolor=C_BELL_ED,markersize=11,label="Drawbell (mineral compartido)"),
-     Line2D([0],[0],marker="o",color="none",markerfacecolor=C_BOT,markeredgecolor="#000",markersize=13,label="Botadero (descarga)")]
+     Line2D([0],[0],marker="o",color="none",markerfacecolor=C_BOT,markeredgecolor="#000",markersize=13,label="Pique de traspaso (descarga)")]
 lg=ax.legend(handles=leg,loc="upper left",bbox_to_anchor=(1.01,1.0),fontsize=11,
              frameon=True,framealpha=1.0,edgecolor=INK,borderpad=1.0,labelspacing=1.0)
 lg.get_frame().set_facecolor("#FFFFFF")

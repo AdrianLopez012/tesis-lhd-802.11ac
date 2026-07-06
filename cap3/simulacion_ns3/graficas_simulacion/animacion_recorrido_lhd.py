@@ -117,10 +117,14 @@ def dijkstra(src, dst):
 # ============================================================================
 Xg=D.X; YB,YT=D.YB,D.YT
 entrada=(-D.RAMPA_LEN_INF,-28.0)
-def galde(dp): return min(Xg,key=lambda gx:abs(dp[0]-gx))
-dps=sorted(D.DRAWPOINTS,key=lambda p:p[1])
-dp1=next(d for d in dps if abs(galde(d)-Xg[0])<8)   # cerca galería izq
-dp2=next(d for d in reversed(dps) if abs(galde(d)-Xg[1])<8) # cerca galería centro
+# SOLO drawpoints ACCESIBLES (giro abierto o recto) — el LHD sube a cargar, así
+# que entra a las costillas que se abren hacia adelante en su marcha (regla de
+# giro según perspectiva). Los 'cerrado' se excluyen (no los puede encarar).
+accesibles=[(x,y) for (x,y,acc) in D.DRAWPOINTS_INFO if acc in ("abierto","recto")]
+# elegimos uno bajo y uno alto, ambos accesibles, para una ruta representativa
+acc_sorted=sorted(accesibles,key=lambda p:p[1])
+dp1=acc_sorted[1] if len(acc_sorted)>1 else acc_sorted[0]   # bajo
+dp2=acc_sorted[-1]                                          # más alto
 b1,b2=D.BOTADEROS[0],D.BOTADEROS[1]
 
 # secuencia: (destino, acción_al_llegar)
@@ -210,7 +214,7 @@ ax.set_xlim(min(xs)-15,max(xs)+20); ax.set_ylim(min(ys)-25,max(ys)+15)
 def upd(f):
     lhd.center=(PX[f],PY[f]); trail.set_data(PX[:f+1],PY[:f+1])
     est={"avanza":"Avanzando","reversa":"En REVERSA (sin girar)",
-         "CARGA":"CARGANDO en drawpoint","DESCARGA":"DESCARGANDO en botadero"}[ST[f]]
+         "CARGA":"CARGANDO en drawpoint","DESCARGA":"DESCARGANDO en pique de traspaso"}[ST[f]]
     label.set_text(f"LHD: {est}")
     col={"avanza":C_LHD,"reversa":"#C08422","CARGA":"#f0b429","DESCARGA":"#8a97a8"}[ST[f]]
     lhd.set_facecolor(col); return lhd,trail,label
