@@ -32,18 +32,27 @@ def bezier(p0,p1,p2,n=22):
     t=np.linspace(0,1,n)[:,None]
     return (1-t)**2*np.array(p0)+2*(1-t)*t*np.array(p1)+t**2*np.array(p2)
 
-def densify(pts, curvas):
-    """Convierte una polilínea (con curvas cuadráticas en índices marcados) en
-    una polilínea densa. En un vértice 'curva' usa el vértice como control."""
+def densify(pts, curvas, fillet=16.0):
+    """Polilínea densa con REDONDEO local (fillet) en los vértices marcados.
+    En un vértice 'curva' se toma un punto a distancia 'fillet' hacia atrás y
+    hacia adelante, y se traza una Bézier entre ellos usando el vértice como
+    control. Así la esquina se redondea sin dispararse, aunque los segmentos
+    sean largos."""
     pts=[np.array(p,float) for p in pts]
     out=[pts[0]]
-    for i in range(len(pts)-1):
-        a,b=pts[i],pts[i+1]
-        if i in curvas and 0<i:
-            mid_in=(pts[i-1]+a)/2
-            out.extend(bezier(mid_in,a,b)[1:])
+    for i in range(1,len(pts)-1):
+        prev,cur,nxt=pts[i-1],pts[i],pts[i+1]
+        if i in curvas:
+            din=np.linalg.norm(cur-prev); dout=np.linalg.norm(nxt-cur)
+            r=min(fillet, din*0.45, dout*0.45)
+            p_in = cur + (prev-cur)/ (din+1e-9)*r
+            p_out= cur + (nxt-cur)/ (dout+1e-9)*r
+            out.append(p_in)
+            out.extend(bezier(p_in,cur,p_out)[1:])
+            out.append(p_out)
         else:
-            out.append(b)
+            out.append(cur)
+    out.append(pts[-1])
     return np.array(out)
 
 def ribbon(ax,xy,width,face,edge,z=2):

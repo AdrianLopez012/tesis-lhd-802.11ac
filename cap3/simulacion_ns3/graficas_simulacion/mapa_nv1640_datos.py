@@ -60,10 +60,11 @@ for y in ys:
 # Rampa principal: entra abajo-izquierda, sube en curva y llega al TOPE de la
 # galería (arriba) — por donde ingresa el LHD.  Rama inferior: acceso por abajo.
 RAMPAS = [
-    # rampa superior: sube por la izquierda y llega al tope de la galería (curva suave)
-    {"pts":[(-RAMPA_LEN_INF,-28.0),(-RAMPA_LEN_INF,YT),(X[0],YT)], "curvas":[1]},
-    # rama inferior: acceso horizontal a la galería por abajo
-    {"pts":[(-RAMPA_LEN_INF,-28.0),(-RAMPA_LEN_INF,0.0),(X[0],0.0)], "curvas":[1]},
+    # rampa superior: sube recta por la izquierda, gira y llega al tope (codo suave)
+    {"pts":[(-RAMPA_LEN_INF,-28.0),(-RAMPA_LEN_INF,YT-8),(-RAMPA_LEN_INF+30,YT),(X[0],YT)],
+     "curvas":[2]},
+    # rama inferior: sube recto y entra horizontal a la galería por abajo
+    {"pts":[(-RAMPA_LEN_INF,-28.0),(-RAMPA_LEN_INF+18,-8),(X[0],0.0)], "curvas":[1]},
 ]
 
 # ---------------- BOTADEROS (arriba) + tramos de subida ----------------
