@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Editor de mapa — NV1640 Nexa Cerro Lindo</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2029; --panel2:#232b36; --line:#333d4d;
+    --ink:#e6ecf3; --muted:#8a97a8; --accent:#3d8bfd; --accent2:#f0b429;
+    --prod:#2E6FB0; --rampa:#C08422; --draw:#1E9E77; --bell:#C9B98A; --bot:#33322E;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--ink);
+       display:flex; height:100vh; overflow:hidden; user-select:none;}
+  /* ---- Panel lateral ---- */
+  #panel{width:280px; min-width:280px; background:var(--panel); border-right:1px solid var(--line);
+         display:flex; flex-direction:column; overflow-y:auto;}
+  #panel h1{font-size:15px; padding:14px 14px 4px; font-weight:600;}
+  #panel .sub{font-size:11px; color:var(--muted); padding:0 14px 12px; line-height:1.5;}
+  .sec{font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--accent);
+       padding:10px 14px 4px; border-top:1px solid var(--line); margin-top:6px;}
+  .tools{display:flex; flex-wrap:wrap; gap:6px; padding:6px 14px;}
+  .tool{flex:1 1 46%; background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+        padding:9px 6px; border-radius:7px; cursor:pointer; font-size:12px; text-align:center;
+        transition:.12s;}
+  .tool:hover{border-color:var(--accent);}
+  .tool.on{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  .row{display:flex; gap:6px; padding:6px 14px; align-items:center; font-size:12px; color:var(--muted);}
+  .row input[type=number]{width:70px; background:var(--bg); border:1px solid var(--line);
+        color:var(--ink); border-radius:5px; padding:5px 7px; font-size:12px;}
+  .btn{background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+       padding:8px 10px; border-radius:6px; cursor:pointer; font-size:12px; transition:.12s;}
+  .btn:hover{border-color:var(--accent);}
+  .btn.wide{width:calc(100% - 28px); margin:4px 14px;}
+  .btn.go{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  .btn.warn{color:#ff7b72;}
+  #hint{font-size:11px; color:var(--accent2); padding:8px 14px; line-height:1.5; min-height:52px;}
+  #out{width:calc(100% - 28px); margin:6px 14px; height:120px; background:var(--bg);
+       border:1px solid var(--line); color:#7ee787; border-radius:6px; padding:8px;
+       font-family:Consolas,monospace; font-size:10px; resize:vertical;}
+  /* ---- Área de dibujo ---- */
+  #stage{flex:1; position:relative; overflow:hidden; background:#0b0f14;}
+  #svg{width:100%; height:100%; cursor:crosshair; touch-action:none;}
+  #topbar{position:absolute; top:10px; left:10px; right:10px; display:flex; gap:8px;
+          align-items:center; pointer-events:none;}
+  #topbar .chip{background:#1a2029dd; border:1px solid var(--line); border-radius:6px;
+        padding:6px 10px; font-size:11px; color:var(--muted); pointer-events:auto;
+        backdrop-filter:blur(6px);}
+  #coord{font-family:Consolas,monospace; color:var(--ink);}
+  .legend{position:absolute; bottom:12px; left:12px; background:#1a2029dd; border:1px solid var(--line);
+        border-radius:8px; padding:10px 12px; font-size:11px; backdrop-filter:blur(6px);}
+  .legend div{display:flex; align-items:center; gap:8px; margin:3px 0;}
+  .sw{width:16px; height:10px; border-radius:2px;}
+  .dot{width:11px; height:11px; border-radius:50%;}
+  .di{width:11px; height:11px; transform:rotate(45deg);}
+</style>
+</head>
+<body>
+
+<div id="panel">
+  <h1>Editor mapa — NV1640</h1>
+  <div class="sub">Nexa Cerro Lindo · zona teleoperación LHD. Edita a tu gusto: dibuja, mueve, une y curva los caminos. Todo en metros reales.</div>
+
+  <div class="sec">Herramienta</div>
+  <div class="tools">
+    <div class="tool" data-t="produccion">Camino producción</div>
+    <div class="tool" data-t="rampa">Rampa acceso</div>
+    <div class="tool" data-t="drawpoint">Drawpoint</div>
+    <div class="tool" data-t="drawbell">Drawbell</div>
+    <div class="tool" data-t="botadero">Botadero</div>
+    <div class="tool" data-t="curvar">Curvar tramo</div>
+    <div class="tool" data-t="unir">🔗 Unir caminos</div>
+    <div class="tool" data-t="borrar">🗑 Borrar (todo)</div>
+    <div class="tool on" data-t="mover">Mover</div>
+  </div>
+
+  <div class="sec">Acciones</div>
+  <div class="row">
+    <button class="btn" id="nuevo">+ Nuevo camino</button>
+  </div>
+  <div class="row">
+    <button class="btn" id="deshacer">Deshacer</button>
+    <button class="btn warn" id="limpiar">Limpiar todo</button>
+  </div>
+  <button class="btn wide" id="recargar">↻ Recargar geometría inicial</button>
+  <div class="row">Escala <input type="number" id="escala" value="1.0" step="0.1"/> m/px</div>
+
+  <div class="sec">Cómo funciona</div>
+  <div id="hint">Selecciona una herramienta para ver la ayuda.</div>
+
+  <div class="sec">Guardar / exportar</div>
+  <button class="btn wide" id="guardar">Guardar (en este navegador)</button>
+  <button class="btn wide go" id="exportar">Exportar para el chat</button>
+  <textarea id="out" readonly placeholder="Aquí sale la geometría para pegar en el chat."></textarea>
+  <button class="btn wide" id="copiar">Copiar al portapapeles</button>
+</div>
+
+<div id="stage">
+  <svg id="svg"></svg>
+  <div id="topbar">
+    <div class="chip">Modo: <span id="modo">Mover / borrar</span></div>
+    <div class="chip">Zoom: <span id="zlbl">100%</span> · rueda para acercar</div>
+    <div class="chip" id="coord">x: —  y: —</div>
+  </div>
+  <div class="legend">
+    <div><span class="sw" style="background:#C08422"></span> Rampa de acceso</div>
+    <div><span class="sw" style="background:#2E6FB0"></span> Galería de producción</div>
+    <div><span class="dot" style="background:#1E9E77"></span> Drawpoint (extracción)</div>
+    <div><span class="di" style="background:#C9B98A"></span> Drawbell (mineral compartido)</div>
+    <div><span class="dot" style="background:#33322E"></span> Botadero (descarga)</div>
+  </div>
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const svg=document.getElementById("svg");
+const $=id=>document.getElementById(id);
+const COL={produccion:"#2E6FB0",rampa:"#C08422"};
+const HINTS={
+  produccion:"Clic para poner puntos de una galería. IMÁN: si acercas el cursor a un punto existente aparece un aro VERDE y el nuevo punto se PEGA ahí (se conectan sin solaparse). Clic en un extremo (aro amarillo) para continuar ese camino. Doble clic para terminar.",
+  rampa:"Igual que producción, con imán verde a puntos existentes para conectar sin solapar. Doble clic para terminar.",
+  drawpoint:"Clic cerca de un camino para poner un drawpoint (boca de extracción). Es solo un punto.",
+  drawbell:"Clic para poner un drawbell (punto de mineral compartido, rombo). Puedes moverlo y borrarlo.",
+  botadero:"Clic para poner un botadero (zona de descarga).",
+  curvar:"Arrastra cualquier tramo entre dos puntos para curvarlo hacia donde quieras.",
+  unir:"Clic en el EXTREMO (aro amarillo) de un camino y luego en el EXTREMO de otro camino para unirlos por esos puntos exactos. (Deben ser del mismo tipo.)",
+  borrar:"Herramienta de borrado universal. Clic sobre lo que sea para eliminarlo: un punto suelto, un drawpoint, un drawbell, un botadero, o un tramo entero.",
+  mover:"Arrastra puntos, drawpoints, drawbells o botaderos para moverlos. Clic derecho arrastrando = mover el mapa."
+};
+
+// ---- estado ----
+let tool="mover", drag=null, hist=[], unirSel=null, snapHint=null;
+let view={x:-40,y:-20,k:2.4};  // pan/zoom: mundo->pantalla
+let tramos=[], draws=[], bells=[], botaderos=[];
+
+// ---- geometría inicial: lo que YA construimos (layout El Teniente completo) ----
+// 3 calles paralelas (134.85 m, sep 25.98 m) + cruceros + rampa curva + rama
+// inferior + drawbells compartidos con pares de drawpoints (costillas que
+// convergen) + 2 botaderos. Todo editable.
+function initGeom(){
+  const LARGO=134.85, SEP=25.98, YB=0, YT=LARGO;
+  const xs=[0,SEP,2*SEP];
+  tramos=[]; bells=[]; draws=[]; botaderos=[];
+  // 3 calles verticales de producción
+  xs.forEach(x=>tramos.push({tipo:"produccion",pts:[{x:x,y:YB},{x:x,y:YT}]}));
+  // cruceros superior e inferior (unen las 3 calles)
+  tramos.push({tipo:"produccion",pts:[{x:xs[0],y:YT},{x:xs[2],y:YT}]});
+  tramos.push({tipo:"produccion",pts:[{x:xs[0],y:YB},{x:xs[2],y:YB}]});
+  // rampa de acceso: entra por arriba con curva + rama inferior
+  tramos.push({tipo:"rampa",pts:[
+     {x:xs[1]-75,y:YT+55},
+     {x:xs[1]-40,y:YT+30,curva:true,cx:xs[1]-62,cy:YT+52},
+     {x:xs[1],y:YT}]});
+  tramos.push({tipo:"rampa",pts:[{x:xs[0]-45,y:YB},{x:xs[0],y:YB}]});
+  // drawbells El Teniente + pares de drawpoints + costillas diagonales
+  const nb=6, off=6, ang=35*Math.PI/180;
+  for(let k=0;k<nb;k++){
+    const y=18+(LARGO-34)*k/(nb-1);
+    [[xs[0],xs[1]],[xs[1],xs[2]]].forEach(pair=>{
+      const mid=(pair[0]+pair[1])/2;
+      bells.push({x:mid,y:y});
+      const dp1={x:mid-off,y:y}, dp2={x:mid+off,y:y};
+      draws.push(dp1); draws.push(dp2);
+      // costillas: desde cada calle hacia su drawpoint (con ángulo)
+      const dxb=off/Math.tan(ang);
+      tramos.push({tipo:"produccion",pts:[{x:pair[0],y:y-dxb},dp1]});
+      tramos.push({tipo:"produccion",pts:[{x:pair[1],y:y-dxb},dp2]});
+    });
+  }
+  // botaderos arriba (descarga) + tramos que suben a ellos
+  botaderos=[{x:xs[0],y:YT+30},{x:xs[2],y:YT+30}];
+  tramos.push({tipo:"produccion",pts:[{x:xs[0],y:YT},{x:xs[0],y:YT+26}]});
+  tramos.push({tipo:"produccion",pts:[{x:xs[2],y:YT},{x:xs[2],y:YT+26}]});
+  // vista inicial para que se vea completo y aireado
+  view={x:-90,y:-25,k:2.0};
+}
+
+// ---- transform ----
+function W2S(p){return{x:(p.x-view.x)*view.k,y:(rect().height-(p.y-view.y)*view.k)};}
+function S2W(sx,sy){return{x:sx/view.k+view.x,y:(rect().height-sy)/view.k+view.y};}
+function rect(){return svg.getBoundingClientRect();}
+
+function evPt(e){const r=rect();const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+  const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;return S2W(cx,cy);}
+
+// ---- history ----
+function push(){hist.push(JSON.stringify({tramos,draws,bells,botaderos}));if(hist.length>100)hist.shift();}
+function undo(){if(!hist.length)return;const s=JSON.parse(hist.pop());tramos=s.tramos;draws=s.draws;bells=s.bells;botaderos=s.botaderos;render();}
+
+// ---- hit tests (en mundo) ----
+function near(a,b,d){return Math.hypot(a.x-b.x,a.y-b.y)<d;}
+function hitNode(p){
+  const d=9/view.k;
+  for(let t=0;t<tramos.length;t++)for(let i=0;i<tramos[t].pts.length;i++)
+    if(near(tramos[t].pts[i],p,d))return{tipo:"node",t,i};
+  for(let i=0;i<draws.length;i++)if(near(draws[i],p,d))return{tipo:"draw",i};
+  for(let i=0;i<bells.length;i++)if(near(bells[i],p,d))return{tipo:"bell",i};
+  for(let i=0;i<botaderos.length;i++)if(near(botaderos[i],p,d+2))return{tipo:"bot",i};
+  return null;
+}
+// SNAP: devuelve el punto existente más cercano dentro del radio de imán, o
+// null si no hay ninguno. Revisa todos los vértices de caminos, drawpoints y
+// drawbells, para que los nuevos puntos se conecten exactamente y no se solapen.
+function snapPoint(p, excluirTramo){
+  const d=13/view.k; let best=null, bd=d;
+  for(let t=0;t<tramos.length;t++){
+    if(t===excluirTramo)continue;
+    for(let i=0;i<tramos[t].pts.length;i++){
+      const q=tramos[t].pts[i], dist=Math.hypot(q.x-p.x,q.y-p.y);
+      if(dist<bd){bd=dist;best={x:q.x,y:q.y};}
+    }
+  }
+  for(const arr of [draws,bells]){
+    for(const q of arr){const dist=Math.hypot(q.x-p.x,q.y-p.y);
+      if(dist<bd){bd=dist;best={x:q.x,y:q.y};}}
+  }
+  return best;
+}
+// detecta si el clic cae sobre un EXTREMO (primer o último punto) de un camino
+function hitExtremo(p){
+  const d=11/view.k;
+  for(let t=0;t<tramos.length;t++){const pts=tramos[t].pts;if(!pts.length)continue;
+    if(near(pts[0],p,d))return{t,end:"ini"};
+    if(near(pts[pts.length-1],p,d))return{t,end:"fin"};
+  }
+  return null;
+}
+function hitSeg(p){
+  const d=8/view.k;
+  for(let t=0;t<tramos.length;t++){const pts=tramos[t].pts;
+    for(let i=0;i<pts.length-1;i++){
+      const a=pts[i],b=pts[i+1];const dx=b.x-a.x,dy=b.y-a.y,L2=dx*dx+dy*dy;
+      let u=L2?((p.x-a.x)*dx+(p.y-a.y)*dy)/L2:0;u=Math.max(0,Math.min(1,u));
+      const qx=a.x+u*dx,qy=a.y+u*dy;
+      if(Math.hypot(p.x-qx,p.y-qy)<d)return{t,i};
+    }}
+  return null;
+}
+function nearestCamino(p){
+  let best=null;
+  tramos.forEach(tr=>tr.pts.forEach(pt=>{const dd=Math.hypot(pt.x-p.x,pt.y-p.y);
+    if(!best||dd<best.dd)best={dd,pt};}));
+  return best;
+}
+let curTramo=-1;
+function ensureTramo(tp){
+  if(curTramo>=0&&tramos[curTramo]&&tramos[curTramo].tipo===tp)return curTramo;
+  tramos.push({tipo:tp,pts:[]});curTramo=tramos.length-1;return curTramo;
+}
+
+// ---- eventos ----
+svg.addEventListener("pointerdown",e=>{
+  e.preventDefault();const p=evPt(e);
+  // clic derecho o botón central = mover el mapa (pan)
+  if(e.button===2||e.button===1){drag={pan:true,sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};return;}
+  if(tool==="mover"){const h=hitNode(p);
+    if(h){if(e.shiftKey){push();del(h);render();}else drag=h;}return;}
+  if(tool==="borrar"){
+    // borrado universal: primero lo más específico (punto/drawpoint/botadero),
+    // si no hay nada puntual, borra el tramo completo bajo el cursor.
+    const hn=hitNode(p);
+    if(hn){push();del(hn);
+      // si un camino quedó con menos de 2 puntos, se elimina entero
+      if(hn.tipo==="node"&&tramos[hn.t]&&tramos[hn.t].pts.length<2)tramos.splice(hn.t,1);
+      curTramo=-1;render();return;}
+    const hs=hitSeg(p);
+    if(hs){push();tramos.splice(hs.t,1);curTramo=-1;render();}
+    return;}
+  if(tool==="unir"){
+    const he=hitExtremo(p);
+    if(!he){unirSel=null;render();return;}            // clic al vacío: cancela
+    if(!unirSel){unirSel=he;render();return;}          // 1er extremo elegido
+    if(he.t===unirSel.t){unirSel=null;render();return;} // mismo camino: cancela
+    const a=unirSel, b=he;
+    if(tramos[a.t].tipo!==tramos[b.t].tipo){alert("Solo se pueden unir caminos del mismo tipo.");unirSel=null;render();return;}
+    push();
+    // Alinea para que el extremo elegido de A quede al final y el de B al inicio
+    let A=tramos[a.t].pts.slice(), B=tramos[b.t].pts.slice();
+    if(a.end==="ini")A.reverse();
+    if(b.end==="fin")B.reverse();
+    tramos[a.t].pts=A.concat(B);
+    tramos.splice(b.t,1);
+    unirSel=null; curTramo=-1; render();
+    return;}
+  if(tool==="curvar"){const hs=hitSeg(p);if(hs){push();drag={tipo:"curva",t:hs.t,i:hs.i};}return;}
+  push();
+  if(tool==="produccion"||tool==="rampa"){
+    // si clicas el extremo de un camino existente del mismo tipo, LO CONTINÚAS
+    if(curTramo<0){
+      const he=hitExtremo(p);
+      if(he&&tramos[he.t].tipo===tool){
+        if(he.end==="ini")tramos[he.t].pts.reverse();  // dibujar siempre al final
+        curTramo=he.t; render(); return;
+      }
+    }
+    const ti=ensureTramo(tool);
+    const snap=snapPoint(p,ti);           // imán a punto existente
+    const np=snap?{x:snap.x,y:snap.y}:{x:p.x,y:p.y};
+    tramos[ti].pts.push(np);}
+  else if(tool==="drawpoint")draws.push({x:p.x,y:p.y});
+  else if(tool==="drawbell")bells.push({x:p.x,y:p.y});
+  else if(tool==="botadero")botaderos.push({x:p.x,y:p.y});
+  render();
+});
+svg.addEventListener("pointermove",e=>{
+  const p=evPt(e);const esc=parseFloat($("escala").value)||1;
+  $("coord").textContent=`x: ${(p.x*esc).toFixed(1)}  y: ${(p.y*esc).toFixed(1)} m`;
+  // muestra a qué punto se pegará (imán) mientras dibujas o mueves
+  if(tool==="produccion"||tool==="rampa"){snapHint=snapPoint(p,curTramo);render();}
+  else if(snapHint){snapHint=null;render();}
+  if(!drag)return;
+  if(drag.pan){view.x=drag.vx-(e.clientX-drag.sx)/view.k;view.y=drag.vy+(e.clientY-drag.sy)/view.k;render();return;}
+  if(drag.tipo==="node"){const s=snapPoint(p,drag.t)||p;
+    tramos[drag.t].pts[drag.i].x=s.x;tramos[drag.t].pts[drag.i].y=s.y;}
+  else if(drag.tipo==="draw"){draws[drag.i]=p;}
+  else if(drag.tipo==="bell"){bells[drag.i]=p;}
+  else if(drag.tipo==="bot"){botaderos[drag.i]=p;}
+  else if(drag.tipo==="curva"){const a=tramos[drag.t].pts[drag.i];a.curva=true;a.cx=p.x;a.cy=p.y;}
+  render();
+});
+window.addEventListener("pointerup",()=>drag=null);
+svg.addEventListener("contextmenu",e=>e.preventDefault());
+svg.addEventListener("dblclick",()=>{curTramo=-1;});
+svg.addEventListener("wheel",e=>{e.preventDefault();const p=evPt(e);
+  const f=e.deltaY<0?1.15:1/1.15;view.k=Math.max(0.5,Math.min(12,view.k*f));
+  render();},{passive:false});
+
+function del(h){if(h.tipo==="node")tramos[h.t].pts.splice(h.i,1);
+  else if(h.tipo==="draw")draws.splice(h.i,1);
+  else if(h.tipo==="bell")bells.splice(h.i,1);
+  else if(h.tipo==="bot")botaderos.splice(h.i,1);}
+
+// ---- render ----
+function segPath(pts){
+  if(pts.length<2)return"";
+  let d=`M ${sx(pts[0])} ${sy(pts[0])}`;
+  for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];
+    if(a.curva&&a.cx!=null)d+=` Q ${sx({x:a.cx,y:a.cy})} ${sy({x:a.cx,y:a.cy})} ${sx(b)} ${sy(b)}`;
+    else d+=` L ${sx(b)} ${sy(b)}`;}
+  return d;
+}
+function sx(p){return W2S(p).x;} function sy(p){return W2S(p).y;}
+function el(tag,at){const e=document.createElementNS(NS,tag);for(const k in at)e.setAttribute(k,at[k]);return e;}
+
+function render(){
+  $("zlbl").textContent=Math.round(view.k/2.4*100)+"%";
+  svg.innerHTML="";
+  // grid cada 25 m
+  const r=rect();const step=25;
+  const w0=S2W(0,r.height),w1=S2W(r.width,0);
+  for(let gx=Math.floor(w0.x/step)*step;gx<w1.x;gx+=step){
+    svg.appendChild(el("line",{x1:sx({x:gx,y:0}),y1:0,x2:sx({x:gx,y:0}),y2:r.height,stroke:"#1c2531","stroke-width":1}));}
+  for(let gy=Math.floor(w0.y/step)*step;gy<w1.y;gy+=step){
+    svg.appendChild(el("line",{x1:0,y1:sy({x:0,y:gy}),x2:r.width,y2:sy({x:0,y:gy}),stroke:"#1c2531","stroke-width":1}));}
+  const WPROD=4.0*view.k, WRAMPA=4.0*view.k;
+  // caminos
+  tramos.forEach((tr,ti)=>{
+    if(tr.pts.length>1)svg.appendChild(el("path",{d:segPath(tr.pts),fill:"none",
+      stroke:COL[tr.tipo],"stroke-width":tr.tipo==="rampa"?WRAMPA:WPROD,
+      "stroke-linecap":"round","stroke-linejoin":"round",opacity:ti===curTramo?1:0.92}));
+    tr.pts.forEach(p=>svg.appendChild(el("circle",{cx:sx(p),cy:sy(p),r:4,
+      fill:COL[tr.tipo],stroke:"#fff","stroke-width":1})));
+    tr.pts.forEach(p=>{if(p.curva&&p.cx!=null&&tool==="curvar")
+      svg.appendChild(el("circle",{cx:sx({x:p.cx,y:p.cy}),cy:sy({x:p.cx,y:p.cy}),r:4,fill:"none",stroke:"#f0b429","stroke-width":1.5}));});
+    // marca los EXTREMOS (aro amarillo) cuando estás uniendo o dibujando caminos
+    if((tool==="unir"||tool==="produccion"||tool==="rampa")&&tr.pts.length){
+      [tr.pts[0],tr.pts[tr.pts.length-1]].forEach(ep=>
+        svg.appendChild(el("circle",{cx:sx(ep),cy:sy(ep),r:7,fill:"none",stroke:"#f0b429","stroke-width":2})));
+    }
+  });
+  // extremo seleccionado para unir (relleno amarillo)
+  if(unirSel&&tramos[unirSel.t]){
+    const pts=tramos[unirSel.t].pts;const ep=unirSel.end==="ini"?pts[0]:pts[pts.length-1];
+    svg.appendChild(el("circle",{cx:sx(ep),cy:sy(ep),r:8,fill:"#f0b429",stroke:"#fff","stroke-width":2}));
+  }
+  // drawbells (rombos)
+  bells.forEach(b=>{const c=W2S(b);const s=6;
+    svg.appendChild(el("polygon",{points:`${c.x},${c.y-s} ${c.x+s},${c.y} ${c.x},${c.y+s} ${c.x-s},${c.y}`,
+      fill:"#C9B98A",stroke:"#7A6A3A","stroke-width":1.2}));});
+  // drawpoints
+  draws.forEach(d=>svg.appendChild(el("circle",{cx:sx(d),cy:sy(d),r:5,fill:"#1E9E77",stroke:"#0C5B41","stroke-width":1.4})));
+  // botaderos
+  botaderos.forEach(b=>{svg.appendChild(el("circle",{cx:sx(b),cy:sy(b),r:9,fill:"#33322E",stroke:"#000","stroke-width":1.3}));});
+  // indicador de SNAP (imán): aro verde sobre el punto al que se pegará
+  if(snapHint&&(tool==="produccion"||tool==="rampa")){
+    svg.appendChild(el("circle",{cx:sx(snapHint),cy:sy(snapHint),r:10,fill:"none",stroke:"#2ec27e","stroke-width":2.5}));
+    svg.appendChild(el("circle",{cx:sx(snapHint),cy:sy(snapHint),r:3,fill:"#2ec27e"}));
+  }
+  // barra escala
+  const esc=parseFloat($("escala").value)||1;const px50=50/esc*view.k;
+  svg.appendChild(el("line",{x1:20,y1:r.height-24,x2:20+px50,y2:r.height-24,stroke:"#e6ecf3","stroke-width":3}));
+  const t=el("text",{x:20+px50/2,y:r.height-30,fill:"#e6ecf3","font-size":11,"text-anchor":"middle"});t.textContent="50 m";svg.appendChild(t);
+}
+
+// ---- herramientas UI ----
+document.querySelectorAll(".tool").forEach(b=>b.onclick=()=>{
+  tool=b.dataset.t;curTramo=-1;unirSel=null;
+  document.querySelectorAll(".tool").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+  $("modo").textContent=b.textContent;$("hint").textContent=HINTS[tool];
+});
+$("nuevo").onclick=()=>{push();curTramo=-1;const tp=(tool==="rampa")?"rampa":"produccion";tramos.push({tipo:tp,pts:[]});curTramo=tramos.length-1;};
+$("deshacer").onclick=undo;
+$("limpiar").onclick=()=>{if(confirm("¿Borrar todo el mapa?")){push();tramos=[];draws=[];bells=[];botaderos=[];curTramo=-1;render();}};
+$("recargar").onclick=()=>{if(confirm("¿Recargar la geometría inicial (El Teniente completo)? Se perderán tus cambios no guardados.")){push();initGeom();render();}};
+$("escala").oninput=render;
+
+$("guardar").onclick=()=>{localStorage.setItem("mapaNV1640",JSON.stringify({tramos,draws,bells,botaderos,view}));
+  $("guardar").textContent="✓ Guardado";setTimeout(()=>$("guardar").textContent="Guardar (en este navegador)",1200);};
+
+$("exportar").onclick=()=>{
+  const esc=parseFloat($("escala").value)||1;
+  const m=p=>`(${(p.x*esc).toFixed(1)}, ${(p.y*esc).toFixed(1)})`;
+  let o=`== MAPA NV1640 (metros, escala ${esc} m/px) ==\n`;
+  let nr=0,np=0;
+  tramos.forEach(tr=>{if(!tr.pts.length)return;
+    const s=tr.pts.map(p=>m(p)+(p.curva?"{curva}":"")).join(" -> ");
+    if(tr.tipo==="rampa")o+=`Rampa ${++nr}: ${s}\n`;else o+=`Producción ${++np}: ${s}\n`;});
+  o+=`\nDrawbells (${bells.length}, mineral compartido): ${bells.map(m).join(", ")}\n`;
+  o+=`Drawpoints (${draws.length}): ${draws.map(m).join(", ")}\n`;
+  o+=`Botaderos (${botaderos.length}): ${botaderos.map(m).join(", ")}\n`;
+  $("out").value=o;
+};
+$("copiar").onclick=()=>{$("out").select();document.execCommand("copy");
+  $("copiar").textContent="✓ Copiado";setTimeout(()=>$("copiar").textContent="Copiar al portapapeles",1200);};
+
+// ---- init ----
+(function(){
+  const saved=localStorage.getItem("mapaNV1640");
+  if(saved){try{const s=JSON.parse(saved);tramos=s.tramos;draws=s.draws;bells=s.bells;botaderos=s.botaderos;if(s.view)view=s.view;}catch(e){initGeom();}}
+  else initGeom();
+  $("hint").textContent=HINTS[tool];
+  window.addEventListener("resize",render);
+  render();
+})();
+</script>
+</body>
+</html>
