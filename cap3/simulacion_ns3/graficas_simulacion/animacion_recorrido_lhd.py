@@ -161,10 +161,19 @@ def ir_por_grafo(desde, hasta):
     path=[(x,y) for (x,y) in [ (round(p[0],1),round(p[1],1)) for p in dijkstra(desde,hasta)]]
     append_path(path[1:] if route else path, "avanza")
 
+def galeria_de(pie):
+    # x de la galería a la que pertenece el pie de la costilla
+    return min(Xg, key=lambda gx: abs(pie[0]-gx))
+
 def cargar_en(dp):
     pie=pie_de(dp)
-    ir_por_grafo(cur_pos(), pie)          # llega al pie por galería
-    append_path([pie, (dp[0],dp[1])], "avanza"); actions[-1]="CARGA_FIN"  # entra de frente
+    gx=galeria_de(pie)
+    # REGLA: encarar SIEMPRE subiendo (giro abierto). Para eso el LHD primero se
+    # posiciona en la galería MÁS ABAJO que el pie, y luego SUBE hasta el pie.
+    abajo=(gx, pie[1]-14)                      # punto de la galería por debajo del pie
+    ir_por_grafo(cur_pos(), abajo)            # va por el grafo hasta ese punto (abajo)
+    append_path([abajo, pie], "avanza")       # SUBE hasta el pie (encara de frente)
+    append_path([pie, (dp[0],dp[1])], "avanza"); actions[-1]="CARGA_FIN"  # entra al drawpoint
     append_path([(dp[0],dp[1]), pie], "reversa")   # sale en reversa (sin giro en U)
 
 def descargar_en(b):
@@ -175,9 +184,17 @@ def cur_pos():
     return route[-1] if route else entrada
 
 # ejecutar la secuencia
+# Elegimos SOLO drawpoints de la galería 1 (izquierda) que son 'abierto',
+# accesibles subiendo, para que la ruta sea limpia y sin giros cerrados.
+abiertos_g1=[(x,y) for (x,y,acc) in D.DRAWPOINTS_INFO
+             if acc=="abierto" and abs(x-(Xg[0]+Xg[1])/2)<6]  # drawbells lado C1
+abiertos_g1=sorted(abiertos_g1,key=lambda p:p[1])
+dpA = abiertos_g1[0]                       # abierto más bajo
+dpB = abiertos_g1[len(abiertos_g1)//2]     # abierto intermedio
+
 append_path([entrada],"avanza")
-cargar_en(dp1); descargar_en(b1)
-cargar_en(dp2); descargar_en(b2)
+cargar_en(dpA); descargar_en(b1)
+cargar_en(dpB); descargar_en(b1)
 
 RXY=[(k[0],k[1]) for k in route]
 
