@@ -161,18 +161,23 @@ def ir_por_grafo(desde, hasta):
     path=[(x,y) for (x,y) in [ (round(p[0],1),round(p[1],1)) for p in dijkstra(desde,hasta)]]
     append_path(path[1:] if route else path, "avanza")
 
-def galeria_de(pie):
-    # x de la galería a la que pertenece el pie de la costilla
-    return min(Xg, key=lambda gx: abs(pie[0]-gx))
-
 def cargar_en(dp):
-    pie=pie_de(dp)
-    gx=galeria_de(pie)
-    # REGLA: encarar SIEMPRE subiendo (giro abierto). Para eso el LHD primero se
-    # posiciona en la galería MÁS ABAJO que el pie, y luego SUBE hasta el pie.
-    abajo=(gx, pie[1]-14)                      # punto de la galería por debajo del pie
-    ir_por_grafo(cur_pos(), abajo)            # va por el grafo hasta ese punto (abajo)
-    append_path([abajo, pie], "avanza")       # SUBE hasta el pie (encara de frente)
+    # Usa COSTILLA_APPROACH: encara el drawpoint por el sentido que da giro
+    # ABIERTO de forma natural. Si el drawpoint se encara 'bajando', el LHD
+    # RODEA (sube más allá por el grafo) y baja para entrar de frente; si es
+    # 'subiendo', se posiciona por debajo y sube. Así TODOS son alcanzables.
+    info=D.COSTILLA_APPROACH.get((round(dp[0],1),round(dp[1],1)))
+    if info is None:   # fallback
+        pie=pie_de(dp); ir_por_grafo(cur_pos(),pie)
+        append_path([pie,(dp[0],dp[1])],"avanza"); actions[-1]="CARGA_FIN"
+        append_path([(dp[0],dp[1]),pie],"reversa"); return
+    pie=info['pie']; gx=info['gal']; sentido=info['sentido']
+    if sentido=='sube':
+        prev=(gx, pie[1]-14)     # se ubica por DEBAJO del pie y sube a encarar
+    else:  # 'baja'
+        prev=(gx, pie[1]+14)     # RODEA: se ubica por ARRIBA del pie y baja a encarar
+    ir_por_grafo(cur_pos(), prev)             # llega al punto de aproximación (rodeando)
+    append_path([prev, pie], "avanza")        # encara de frente (giro abierto)
     append_path([pie, (dp[0],dp[1])], "avanza"); actions[-1]="CARGA_FIN"  # entra al drawpoint
     append_path([(dp[0],dp[1]), pie], "reversa")   # sale en reversa (sin giro en U)
 
@@ -183,18 +188,20 @@ def descargar_en(b):
 def cur_pos():
     return route[-1] if route else entrada
 
-# ejecutar la secuencia
-# Elegimos SOLO drawpoints de la galería 1 (izquierda) que son 'abierto',
-# accesibles subiendo, para que la ruta sea limpia y sin giros cerrados.
-abiertos_g1=[(x,y) for (x,y,acc) in D.DRAWPOINTS_INFO
-             if acc=="abierto" and abs(x-(Xg[0]+Xg[1])/2)<6]  # drawbells lado C1
-abiertos_g1=sorted(abiertos_g1,key=lambda p:p[1])
-dpA = abiertos_g1[0]                       # abierto más bajo
-dpB = abiertos_g1[len(abiertos_g1)//2]     # abierto intermedio
+# ejecutar la secuencia — ahora TODOS los drawpoints son alcanzables (rodeando
+# para encarar en giro abierto). Elegimos un caso 'abierto' (encara subiendo) y
+# un caso 'cerrado' (el LHD RODEA y baja para encararlo) para demostrar la lógica.
+todos=sorted(D.DRAWPOINTS,key=lambda p:p[1])
+def acc_de(dp):
+    for (x,y,a) in D.DRAWPOINTS_INFO:
+        if abs(x-dp[0])<0.5 and abs(y-dp[1])<0.5: return a
+    return '?'
+dp_abierto=next(d for d in todos if acc_de(d)=='abierto')
+dp_cerrado=next(d for d in reversed(todos) if acc_de(d)=='cerrado')
 
 append_path([entrada],"avanza")
-cargar_en(dpA); descargar_en(b1)
-cargar_en(dpB); descargar_en(b1)
+cargar_en(dp_abierto); descargar_en(b1)      # caso fácil (encara subiendo)
+cargar_en(dp_cerrado); descargar_en(b2)      # caso que RODEA para encarar abierto
 
 RXY=[(k[0],k[1]) for k in route]
 

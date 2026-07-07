@@ -50,6 +50,13 @@ PRODUCCION.append([(X[0],YB),(X[2],YB)])      # crucero inferior
 DRAWBELLS=[]; DRAWPOINTS=[]
 # guardamos metadatos de accesibilidad por drawpoint: (x,y,acceso) acceso: 'abierto'/'cerrado'/'recto'
 DRAWPOINTS_INFO=[]
+# COSTILLA_APPROACH: por cada drawpoint, cómo encararlo en giro abierto:
+#   (dp) -> {'pie':(x,y), 'gal':x_galeria, 'sentido':'sube'/'baja'}
+# El LHD debe llegar al 'pie' viniendo en ese 'sentido' (rodeando si hace falta)
+# para entrar de frente. Así TODOS los drawpoints son alcanzables.
+COSTILLA_APPROACH={}
+def _reg(dp, pie, gal, sentido):
+    COSTILLA_APPROACH[(round(dp[0],1),round(dp[1],1))]={'pie':pie,'gal':gal,'sentido':sentido}
 ys = np.linspace(Y0, Y1, N_NIV)
 a = np.radians(ANG_COSTILLA)
 dxc = COSTILLA_LEN*np.cos(a)   # avance horizontal de la costilla
@@ -62,26 +69,35 @@ def add_recto(xgal, y):
     dp=(xgal+COSTILLA_LEN*0.7, y)
     DRAWPOINTS.append(dp); DRAWPOINTS_INFO.append((dp[0],dp[1],'recto'))
     PRODUCCION.append([(xgal,y), dp])
+    _reg(dp,(xgal,y),xgal,'sube')   # recto: se encara subiendo/de frente
 add_recto(X[0], YB+8)   # C1 recto
 add_recto(X[1], YB+8)   # C2 recto
 
+# Nota: 'abierto'/'cerrado' es respecto a subir; pero TODOS son alcanzables
+# rodeando. El campo 'sentido' dice desde qué marcha se encara en giro abierto:
+#   costilla que sube ↗  -> se encara SUBIENDO por su galería.
+#   costilla que baja ↘↙ -> se encara BAJANDO por su galería.
 for y in ys:
-    # ----- Drawbell A (C1 abierto ↗  +  C2 izq cerrado ↘) -----
+    # ----- Drawbell A (C1 sube ↗  +  C2 izq baja ↘) -----
     DRAWBELLS.append((cAB,y))
     dpA1=(cAB-2.5,y); dpA2=(cAB+2.5,y)
     DRAWPOINTS.append(dpA1); DRAWPOINTS.append(dpA2)
-    DRAWPOINTS_INFO.append((dpA1[0],dpA1[1],'abierto'))   # viene de C1 (fácil)
-    DRAWPOINTS_INFO.append((dpA2[0],dpA2[1],'cerrado'))   # viene de C2 izq (difícil)
-    PRODUCCION.append([(X[0], y-dyc), dpA1])   # C1: sube ↗ (abierto)
-    PRODUCCION.append([(X[1], y+dyc), dpA2])   # C2 izq: baja ↘ (cerrado)
-    # ----- Drawbell B (C2 der abierto ↗  +  C3 cerrado ↙) -----
+    DRAWPOINTS_INFO.append((dpA1[0],dpA1[1],'abierto'))
+    DRAWPOINTS_INFO.append((dpA2[0],dpA2[1],'cerrado'))
+    PRODUCCION.append([(X[0], y-dyc), dpA1])   # C1: costilla sube ↗
+    PRODUCCION.append([(X[1], y+dyc), dpA2])   # C2 izq: costilla baja ↘
+    _reg(dpA1,(X[0],y-dyc),X[0],'sube')        # encara subiendo por C1
+    _reg(dpA2,(X[1],y+dyc),X[1],'baja')        # encara BAJANDO por C2
+    # ----- Drawbell B (C2 der sube ↗  +  C3 baja ↙) -----
     DRAWBELLS.append((cBC,y))
     dpB1=(cBC-2.5,y); dpB2=(cBC+2.5,y)
     DRAWPOINTS.append(dpB1); DRAWPOINTS.append(dpB2)
-    DRAWPOINTS_INFO.append((dpB1[0],dpB1[1],'abierto'))   # viene de C2 der (fácil)
-    DRAWPOINTS_INFO.append((dpB2[0],dpB2[1],'cerrado'))   # viene de C3 (difícil)
-    PRODUCCION.append([(X[1], y-dyc), dpB1])   # C2 der: sube ↗ (abierto)
-    PRODUCCION.append([(X[2], y+dyc), dpB2])   # C3: baja ↙ (cerrado)
+    DRAWPOINTS_INFO.append((dpB1[0],dpB1[1],'abierto'))
+    DRAWPOINTS_INFO.append((dpB2[0],dpB2[1],'cerrado'))
+    PRODUCCION.append([(X[1], y-dyc), dpB1])   # C2 der: costilla sube ↗
+    PRODUCCION.append([(X[2], y+dyc), dpB2])   # C3: costilla baja ↙
+    _reg(dpB1,(X[1],y-dyc),X[1],'sube')        # encara subiendo por C2
+    _reg(dpB2,(X[2],y+dyc),X[2],'baja')        # encara BAJANDO por C3
 
 # ---------------- RAMPAS DE ACCESO ----------------
 # Rampa principal: entra abajo-izquierda, sube en curva y llega al TOPE de la
