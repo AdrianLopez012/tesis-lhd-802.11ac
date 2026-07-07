@@ -326,26 +326,31 @@ int main (int argc, char *argv[])
   WifiMacHelper macAp;
   std::vector<NetDeviceContainer> hawkDev(nHawks), cardDev(nCards);
   YansWifiPhyHelper phyHawk=mkPhy(txPowHawk,11.0);
+  const Time BEACON=MicroSeconds(102400);
   for(uint32_t i=0;i<nHawks;i++){
     macAp.SetType("ns3::ApWifiMac","Ssid",SsidValue(ssid),
-                  "BeaconInterval",TimeValue(MicroSeconds(51200)),"QosSupported",BooleanValue(true));
+                  "BeaconInterval",TimeValue(BEACON),"QosSupported",BooleanValue(true));
     NodeContainer n; n.Add(hawks.Get(i)); hawkDev[i]=wifi.Install(phyHawk,macAp,n);
   }
   YansWifiPhyHelper phyCard=mkPhy(txPowCard,7.5);
   for(uint32_t i=0;i<nCards;i++){
     macAp.SetType("ns3::ApWifiMac","Ssid",SsidValue(ssid),
-                  "BeaconInterval",TimeValue(MicroSeconds(51200)),"QosSupported",BooleanValue(true));
+                  "BeaconInterval",TimeValue(BEACON),"QosSupported",BooleanValue(true));
     NodeContainer n; n.Add(cards.Get(i)); cardDev[i]=wifi.Install(phyCard,macAp,n);
   }
   // LHD: STA con antena HELI-40 (4.8 dBi), radio Cardinal (23 dBm)
   YansWifiPhyHelper phySta=mkPhy(txPowCard,4.8);
   WifiMacHelper macSta;
   macSta.SetType("ns3::StaWifiMac","Ssid",SsidValue(ssid),
-                 "ActiveProbing",BooleanValue(true),"QosSupported",BooleanValue(true));
+                 "ActiveProbing",BooleanValue(false),"QosSupported",BooleanValue(true));
   NetDeviceContainer lhdDev=wifi.Install(phySta,macSta,lhd);
 
+  // Roaming estable con histéresis: el STA solo se re-asocia cuando pierde de
+  // verdad al AP servidor (varios beacons seguidos), evitando el ping-pong entre
+  // APs de igual SSID. Emula el roaming L2 del mesh Rajant InstaMesh, que mantiene
+  // el enlace (make-before-break) en vez de reasociar por cada beacon marginal.
   Config::Set("/NodeList/"+std::to_string(lhd.Get(0)->GetId())+
-              "/DeviceList/*/Mac/$ns3::StaWifiMac/MaxMissedBeacons",UintegerValue(3));
+              "/DeviceList/*/Mac/$ns3::StaWifiMac/MaxMissedBeacons",UintegerValue(10));
   Config::Set("/NodeList/"+std::to_string(lhd.Get(0)->GetId())+
               "/DeviceList/*/Mac/$ns3::StaWifiMac/AssocRequestTimeout",TimeValue(MilliSeconds(50)));
 

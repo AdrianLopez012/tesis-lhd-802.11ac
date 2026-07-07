@@ -82,7 +82,12 @@ def dij(s,t):
             if v not in seen:heapq.heappush(pq,(c+w,v,pa+[v]))
     return [s,t]
 
-Xg=D.X;YB,YT=D.YB,D.YT;entrada=(-D.RAMPA_LEN_INF,-28.0)
+# Para la SIMULACIÓN de teleoperación, el recorrido debe quedar dentro de la
+# ZONA DE PRODUCCIÓN (donde hay cobertura y sí se teleopera). La rampa (-176 m)
+# es solo acceso manual/contexto: NO se incluye en el recorrido simulado, porque
+# ahí no hay AP y dispararía el PLR de forma artificial. Se arranca en el pie de
+# la galería central, en el crucero inferior (dentro de cobertura).
+Xg=D.X;YB,YT=D.YB,D.YT;entrada=(Xg[1],YB)
 route=[];actions=[]
 def append_path(path,st="avanza"):
     for k in path:route.append(k);actions.append(st)
