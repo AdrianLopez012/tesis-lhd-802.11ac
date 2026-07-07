@@ -62,8 +62,18 @@ def subdivide(a,b,step=2.0):
     d=np.hypot(b[0]-a[0],b[1]-a[1]); n=max(1,int(d/step))
     return [(a[0]+(b[0]-a[0])*k/n, a[1]+(b[1]-a[1])*k/n) for k in range(n+1)]
 
+# Un tramo de PRODUCCION es "costilla de drawpoint" si su último punto es un
+# drawpoint. Esas NO entran al grafo general (para que Dijkstra no las atraviese
+# ni entre en sentido de giro cerrado). Solo galerías, cruceros y rampa forman
+# el grafo por donde el LHD circula libremente.
+draw_set={(round(x,1),round(y,1)) for (x,y) in D.DRAWPOINTS}
+def es_costilla(cam):
+    p=cam[-1]; return (round(p[0],1),round(p[1],1)) in draw_set
+
 polylines=[]
 for cam in D.PRODUCCION:
+    if es_costilla(cam):   # costilla a drawpoint: se maneja aparte, no al grafo
+        continue
     dense=[]
     for i in range(len(cam)-1): dense+=subdivide(tuple(cam[i]),tuple(cam[i+1]))
     polylines.append(dense)
@@ -71,6 +81,13 @@ for r in D.RAMPAS:
     base=densify(r["pts"], r.get("curvas",[])); dense=[]
     for i in range(len(base)-1): dense+=subdivide(base[i],base[i+1])
     polylines.append(dense)
+
+# mapa: drawpoint -> (punto de pie en la galería, coord drawpoint) para maniobras
+COSTILLAS={}
+for cam in D.PRODUCCION:
+    if es_costilla(cam):
+        pie=tuple(cam[0]); dp=tuple(cam[-1])
+        COSTILLAS[(round(dp[0],1),round(dp[1],1))]=(pie,dp)
 
 adj={}
 def add_edge(a,b):
@@ -127,34 +144,41 @@ dp1=acc_sorted[1] if len(acc_sorted)>1 else acc_sorted[0]   # bajo
 dp2=acc_sorted[-1]                                          # más alto
 b1,b2=D.BOTADEROS[0],D.BOTADEROS[1]
 
-# secuencia: (destino, acción_al_llegar)
-destinos=[
-    (entrada,None),(dp1,"CARGA"),(b1,"DESCARGA"),(dp2,"CARGA"),(b2,"DESCARGA"),
-]
+# pie de costilla de cada drawpoint elegido (para maniobrar)
+def pie_de(dp):
+    k=(round(dp[0],1),round(dp[1],1))
+    return COSTILLAS.get(k,(dp,dp))[0]
 
-# construir la polilínea completa de la ruta siguiendo el grafo
-route=[]; actions=[]  # actions marca en qué índice hay CARGA/DESCARGA
-def append_path(path, reverse_state=False):
-    for k in path:
-        route.append(k); actions.append("reversa" if reverse_state else "avanza")
+route=[]; actions=[]
+def append_path(path, st="avanza"):
+    for k in path: route.append(k); actions.append(st)
 
-cur=entrada
-for i,(dest,act) in enumerate(destinos):
-    if i==0: cur=dest; continue
-    path=dijkstra(cur,dest)
-    append_path(path[1:] if route else path, reverse_state=False)
-    if act=="CARGA": actions[-1]="CARGA_FIN"
-    if act=="DESCARGA": actions[-1]="DESCARGA_FIN"
-    # tras cargar en un drawpoint, RETROCEDE por la misma costilla hasta la galería
-    if act=="CARGA":
-        back=list(reversed(path))[1:]   # vuelve por donde vino
-        # solo retrocede el tramo de costilla (~hasta la galería): 2-3 nodos
-        append_path(back[:2], reverse_state=True)
-        cur=route[-1]
-    else:
-        cur=dest
+# La ruta: entra -> (por grafo) al PIE del drawpoint -> avanza costilla al
+# drawpoint (CARGA) -> reversa costilla al pie -> (por grafo) al pique (DESCARGA).
+# Como las costillas NO están en el grafo, Dijkstra jamás entra a un drawpoint
+# de paso ni en giro cerrado: la entrada es siempre esta maniobra explícita.
+def ir_por_grafo(desde, hasta):
+    path=[(x,y) for (x,y) in [ (round(p[0],1),round(p[1],1)) for p in dijkstra(desde,hasta)]]
+    append_path(path[1:] if route else path, "avanza")
 
-# convertir keys de route a coords
+def cargar_en(dp):
+    pie=pie_de(dp)
+    ir_por_grafo(cur_pos(), pie)          # llega al pie por galería
+    append_path([pie, (dp[0],dp[1])], "avanza"); actions[-1]="CARGA_FIN"  # entra de frente
+    append_path([(dp[0],dp[1]), pie], "reversa")   # sale en reversa (sin giro en U)
+
+def descargar_en(b):
+    ir_por_grafo(cur_pos(), b)
+    actions[-1]="DESCARGA_FIN"
+
+def cur_pos():
+    return route[-1] if route else entrada
+
+# ejecutar la secuencia
+append_path([entrada],"avanza")
+cargar_en(dp1); descargar_en(b1)
+cargar_en(dp2); descargar_en(b2)
+
 RXY=[(k[0],k[1]) for k in route]
 
 # ============================================================================
