@@ -117,3 +117,24 @@ PIQUES = [(X[0], YT+BOT_DY), (X[1], YT+BOT_DY)]
 BOTADEROS = PIQUES   # alias por compatibilidad
 PRODUCCION.append([(X[0],YT),(X[0],YT+BOT_DY-4)])
 PRODUCCION.append([(X[1],YT),(X[1],YT+BOT_DY-4)])
+
+# ---------------- ANTENAS AP (ubicadas por el usuario en el editor, 2026-07-06) ----------------
+# Red híbrida: mesh InstaMesh entre AP (se forma por cercanía en la simulación)
+# + backbone cableado. Coordenadas en metros (mismo sistema que el mapa).
+HAWKS = [   # AP Hawk FE1-5050 (fijos, mayor potencia)
+    (-0.2, 134.9),  # H1
+    (-0.1,  88.6),  # H2
+    (25.9,  43.4),  # H3
+    (25.9,  -0.3),  # H4
+    (52.2,  84.6),  # H5
+]
+CARDINALS_AP = [   # AP Cardinal (breadcrumbs, menor potencia)
+    (-0.3,  43.8),  # C1
+    (-0.1,   8.0),  # C2
+    (26.1, 129.1),  # C3
+    (26.3,  87.2),  # C4
+    (26.3,  21.4),  # C5
+    (52.0,  38.5),  # C6
+    (52.4, 129.7),  # C7
+]
+COBERTURA_AP = 60.0   # m — radio de cobertura usado por el usuario (a ajustar con datasheet)
