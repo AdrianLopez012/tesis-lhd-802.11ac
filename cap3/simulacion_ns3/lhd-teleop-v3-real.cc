@@ -198,20 +198,34 @@ static std::vector<ApInfo> g_aps;
 
 static std::string MacToString (Mac48Address a){ std::ostringstream o; o<<a; return o.str (); }
 
+// Medición de handover: tiempo entre pérdida del AP (DeAssoc) y reasociación (Assoc).
+static double g_lastDeAssocT = -1.0;      // instante del último DeAssoc pendiente
+static std::string g_lastAp = "";         // AP servidor previo
+static std::vector<double> g_hoDur;       // duraciones de handover (ms)
+static uint32_t g_assocCount = 0;
+
 void OnAssoc (Mac48Address a)
 {
   std::string k=MacToString(a); std::string id=g_macToId.count(k)?g_macToId[k]:k;
   double t=Simulator::Now().GetSeconds();
-  std::cout<<"[WiFi] LHD asociado a "<<id<<"  t="<<t<<"s\n";
+  double hoMs=-1.0;
+  if(g_lastDeAssocT>=0.0){ hoMs=(t-g_lastDeAssocT)*1000.0; g_hoDur.push_back(hoMs); g_lastDeAssocT=-1.0; }
+  g_assocCount++;
+  std::cout<<"[WiFi] LHD asociado a "<<id<<"  t="<<t<<"s";
+  if(hoMs>=0.0) std::cout<<"  (handover "<<std::fixed<<std::setprecision(1)<<hoMs<<" ms desde "<<g_lastAp<<")";
+  std::cout<<"\n";
   if(g_assocLog.is_open() && g_lhdMob){ Vector p=g_lhdMob->GetPosition();
-    g_assocLog<<std::fixed<<std::setprecision(2)<<t<<",assoc,"<<id<<","<<p.x<<","<<p.y<<"\n"; }
+    g_assocLog<<std::fixed<<std::setprecision(2)<<t<<",assoc,"<<id<<","<<p.x<<","<<p.y<<","
+              <<(hoMs>=0.0?hoMs:0.0)<<"\n"; }
+  g_lastAp=id;
 }
 void OnDeAssoc (Mac48Address a)
 {
   std::string k=MacToString(a); std::string id=g_macToId.count(k)?g_macToId[k]:k;
   double t=Simulator::Now().GetSeconds();
+  g_lastDeAssocT=t;
   if(g_assocLog.is_open() && g_lhdMob){ Vector p=g_lhdMob->GetPosition();
-    g_assocLog<<std::fixed<<std::setprecision(2)<<t<<",deassoc,"<<id<<","<<p.x<<","<<p.y<<"\n"; }
+    g_assocLog<<std::fixed<<std::setprecision(2)<<t<<",deassoc,"<<id<<","<<p.x<<","<<p.y<<",0\n"; }
 }
 
 // RSSI estimado del mejor AP (para el pos_log) — coherente con DoCalcRxPower
@@ -381,8 +395,11 @@ int main (int argc, char *argv[])
   Ptr<WaypointMobilityModel> lhdMob=lhd.Get(0)->GetObject<WaypointMobilityModel>();
   g_lhdMob=lhdMob;
   if(isMobility) BuildRoute(lhdMob,lhdSpeed,simTime);
-  else { double t=0; lhdMob->AddWaypoint(Waypoint(Seconds(0),Vector(geo::X_GAL[0],geo::Y_BASE,HEIGHT_LHD)));
-         lhdMob->AddWaypoint(Waypoint(Seconds(simTime),Vector(geo::X_GAL[0],geo::Y_TOP,HEIGHT_LHD))); (void)t; }
+  else { // baseline: LHD ESTÁTICO en un punto representativo de la zona (galería
+         // central, mitad de altura) — referencia sin movilidad ni handovers.
+         Vector pos(geo::X_GAL[1],(geo::Y_BASE+geo::Y_TOP)/2.0,HEIGHT_LHD);
+         lhdMob->AddWaypoint(Waypoint(Seconds(0),pos));
+         lhdMob->AddWaypoint(Waypoint(Seconds(simTime+10),pos)); }
 
   // registrar AP para PosLog
   g_aps.clear();
@@ -438,7 +455,7 @@ int main (int argc, char *argv[])
     g_posLog<<"time_s,x,y,serving_ap,rssi_dbm\n";
     Simulator::Schedule(Seconds(tStart),&PosLog);
     g_assocLog.open("results/"+scenario+"_v3_assoc_log.csv");
-    g_assocLog<<"time_s,event,ap_id,x,y\n";
+    g_assocLog<<"time_s,event,ap_id,x,y,handover_ms\n";
   }
 
   // ── FlowMonitor ──
@@ -486,6 +503,26 @@ int main (int argc, char *argv[])
        <<owd<<","<<owdP95<<","<<jitP95<<","<<iptput<<","<<goodput<<","<<e2e<<"\n";
   }
   out.close();
+
+  // ── Análisis de handover (RNF-05: handover <= 150 ms) ──
+  if(!g_hoDur.empty()){
+    double hmax=0, hsum=0; for(double h:g_hoDur){ hsum+=h; if(h>hmax)hmax=h; }
+    double hmean=hsum/g_hoDur.size();
+    std::vector<double> hs=g_hoDur; std::sort(hs.begin(),hs.end());
+    double hp95=Percentile(hs,95.0);
+    bool hoOk=(hmax<=150.0);
+    std::cout<<"\n[Handover] eventos="<<g_hoDur.size()<<" | media="<<std::fixed<<std::setprecision(1)
+             <<hmean<<"ms | P95="<<hp95<<"ms | max="<<hmax<<"ms\n";
+    std::cout<<"   KPI handover<=150ms (RNF-05): "<<(hoOk?"CUMPLE":"NO CUMPLE")<<"\n";
+    if(!hoOk) allOk=false;
+    std::ofstream ho("results/"+scenario+"_v3_handover.csv");
+    ho<<"metric,value_ms\n";
+    ho<<"eventos,"<<g_hoDur.size()<<"\nmedia,"<<hmean<<"\np95,"<<hp95<<"\nmax,"<<hmax<<"\n";
+    ho<<"umbral,150\n"; ho.close();
+  } else {
+    std::cout<<"\n[Handover] sin handovers duros (asociaciones totales="<<g_assocCount<<")\n";
+  }
+
   fm->SerializeToXmlFile("results/"+scenario+"_v3_flowmon.xml",true,true);
   std::cout<<"\n===== "<<(allOk?"TODOS LOS KPIs CUMPLEN":"ALGUNOS KPIs NO CUMPLEN")<<" =====\n";
   std::cout<<"CSV: "<<resFile<<"\n";
