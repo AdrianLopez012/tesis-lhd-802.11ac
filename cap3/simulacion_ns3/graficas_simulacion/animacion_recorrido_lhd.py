@@ -172,10 +172,13 @@ def cargar_en(dp):
         append_path([pie,(dp[0],dp[1])],"avanza"); actions[-1]="CARGA_FIN"
         append_path([(dp[0],dp[1]),pie],"reversa"); return
     pie=info['pie']; gx=info['gal']; sentido=info['sentido']
+    # El punto de aproximación se ACOTA a los límites de la galería [YB, YT]
+    # para que el LHD nunca se salga del túnel (evita el retroceso raro).
+    OFF=10.0
     if sentido=='sube':
-        prev=(gx, pie[1]-14)     # se ubica por DEBAJO del pie y sube a encarar
+        prev=(gx, max(YB, pie[1]-OFF))   # por DEBAJO del pie, dentro de la galería
     else:  # 'baja'
-        prev=(gx, pie[1]+14)     # RODEA: se ubica por ARRIBA del pie y baja a encarar
+        prev=(gx, min(YT, pie[1]+OFF))   # por ARRIBA del pie, sin pasar el tope
     ir_por_grafo(cur_pos(), prev)             # llega al punto de aproximación (rodeando)
     append_path([prev, pie], "avanza")        # encara de frente (giro abierto)
     append_path([pie, (dp[0],dp[1])], "avanza"); actions[-1]="CARGA_FIN"  # entra al drawpoint
