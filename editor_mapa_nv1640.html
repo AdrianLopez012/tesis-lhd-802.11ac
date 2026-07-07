@@ -71,6 +71,7 @@
     <div class="tool" data-t="botadero">Botadero</div>
     <div class="tool" data-t="hawk">📡 AP Hawk</div>
     <div class="tool" data-t="cardinal">📶 AP Cardinal</div>
+    <div class="tool" data-t="mesh">🔗 Enlace mesh</div>
     <div class="tool" data-t="curvar">Curvar tramo</div>
     <div class="tool" data-t="unir">🔗 Unir caminos</div>
     <div class="tool" data-t="borrar">🗑 Borrar (todo)</div>
@@ -131,6 +132,7 @@ const HINTS={
   botadero:"Clic para poner un botadero (zona de descarga).",
   hawk:"Clic para colocar una antena AP Hawk (fija). Muestra su radio de cobertura para ver si el recorrido queda cubierto. Ajusta el radio en el panel.",
   cardinal:"Clic para colocar una antena AP Cardinal. Muestra su radio de cobertura. Úsalas para rellenar zonas donde el Hawk no llega.",
+  mesh:"Enlace inalámbrico entre AP. Clic en un AP y luego en OTRO AP para conectarlos por radio (mesh). Repite para armar la malla. Clic en un enlace con Borrar para quitarlo.",
   curvar:"Arrastra cualquier tramo entre dos puntos para curvarlo hacia donde quieras.",
   unir:"Clic en el EXTREMO (aro amarillo) de un camino y luego en el EXTREMO de otro camino para unirlos por esos puntos exactos. (Deben ser del mismo tipo.)",
   borrar:"Herramienta de borrado universal. Clic sobre lo que sea para eliminarlo: un punto suelto, un drawpoint, un drawbell, un botadero, o un tramo entero.",
@@ -141,47 +143,59 @@ const HINTS={
 let tool="mover", drag=null, hist=[], unirSel=null, snapHint=null;
 let view={x:-40,y:-20,k:2.4};  // pan/zoom: mundo->pantalla
 let tramos=[], draws=[], bells=[], botaderos=[], hawks=[], cardinals=[];
+let enlaces=[];          // enlaces mesh entre AP: {a:{t,i}, b:{t,i}}  (t:'hawk'/'card')
+let meshSel=null;        // primer AP seleccionado para enlazar
 
 // ---- geometría inicial: lo que YA construimos (layout El Teniente completo) ----
 // 3 calles paralelas (134.85 m, sep 25.98 m) + cruceros + rampa curva + rama
 // inferior + drawbells compartidos con pares de drawpoints (costillas que
 // convergen) + 2 botaderos. Todo editable.
 function initGeom(){
+  // Geometría FINAL, sincronizada con mapa_nv1640_datos.py (layout El Teniente):
+  //  - 3 galerías verticales + cruceros sup/inf.
+  //  - 5 niveles de drawbells compartidos (A entre C1-C2, B entre C2-C3).
+  //  - Costillas inclinadas: C1 sube ↗, C2izq baja ↘, C2der sube ↗, C3 baja ↙.
+  //  - Rectos abajo en C1 y C2. Rampa sup + inf. Piques (uno izq, uno medio).
   const LARGO=134.85, SEP=25.98, YB=0, YT=LARGO;
-  const xs=[0,SEP,2*SEP];
+  const X=[0,SEP,2*SEP];
+  const N_NIV=5, Y0=30, Y1=LARGO-14;
+  const ANG=55*Math.PI/180, CLEN=11, BOT_DY=30;
+  const dxc=CLEN*Math.cos(ANG), dyc=CLEN*Math.sin(ANG);
+  const cAB=SEP*0.5, cBC=SEP*1.5;
   tramos=[]; bells=[]; draws=[]; botaderos=[];
-  // 3 calles verticales de producción
-  xs.forEach(x=>tramos.push({tipo:"produccion",pts:[{x:x,y:YB},{x:x,y:YT}]}));
-  // cruceros superior e inferior (unen las 3 calles)
-  tramos.push({tipo:"produccion",pts:[{x:xs[0],y:YT},{x:xs[2],y:YT}]});
-  tramos.push({tipo:"produccion",pts:[{x:xs[0],y:YB},{x:xs[2],y:YB}]});
-  // rampa de acceso: entra por arriba con curva + rama inferior
-  tramos.push({tipo:"rampa",pts:[
-     {x:xs[1]-75,y:YT+55},
-     {x:xs[1]-40,y:YT+30,curva:true,cx:xs[1]-62,cy:YT+52},
-     {x:xs[1],y:YT}]});
-  tramos.push({tipo:"rampa",pts:[{x:xs[0]-45,y:YB},{x:xs[0],y:YB}]});
-  // drawbells El Teniente + pares de drawpoints + costillas diagonales
-  const nb=6, off=6, ang=35*Math.PI/180;
-  for(let k=0;k<nb;k++){
-    const y=18+(LARGO-34)*k/(nb-1);
-    [[xs[0],xs[1]],[xs[1],xs[2]]].forEach(pair=>{
-      const mid=(pair[0]+pair[1])/2;
-      bells.push({x:mid,y:y});
-      const dp1={x:mid-off,y:y}, dp2={x:mid+off,y:y};
-      draws.push(dp1); draws.push(dp2);
-      // costillas: desde cada calle hacia su drawpoint (con ángulo)
-      const dxb=off/Math.tan(ang);
-      tramos.push({tipo:"produccion",pts:[{x:pair[0],y:y-dxb},dp1]});
-      tramos.push({tipo:"produccion",pts:[{x:pair[1],y:y-dxb},dp2]});
-    });
+  // 3 galerías + cruceros
+  X.forEach(x=>tramos.push({tipo:"produccion",pts:[{x:x,y:YB},{x:x,y:YT}]}));
+  tramos.push({tipo:"produccion",pts:[{x:X[0],y:YT},{x:X[2],y:YT}]});
+  tramos.push({tipo:"produccion",pts:[{x:X[0],y:YB},{x:X[2],y:YB}]});
+  // rectos abajo (C1 y C2), mirando a la derecha
+  function recto(xg){ const dp={x:xg+CLEN*0.7,y:YB+8}; draws.push(dp);
+    tramos.push({tipo:"produccion",pts:[{x:xg,y:YB+8},dp]}); }
+  recto(X[0]); recto(X[1]);
+  // niveles de drawbells + costillas inclinadas
+  for(let k=0;k<N_NIV;k++){
+    const y=Y0+(Y1-Y0)*k/(N_NIV-1);
+    // Drawbell A (C1 sube ↗ + C2izq baja ↘)
+    bells.push({x:cAB,y:y});
+    const dpA1={x:cAB-2.5,y:y}, dpA2={x:cAB+2.5,y:y};
+    draws.push(dpA1); draws.push(dpA2);
+    tramos.push({tipo:"produccion",pts:[{x:X[0],y:y-dyc},dpA1]}); // C1 ↗
+    tramos.push({tipo:"produccion",pts:[{x:X[1],y:y+dyc},dpA2]}); // C2izq ↘
+    // Drawbell B (C2der sube ↗ + C3 baja ↙)
+    bells.push({x:cBC,y:y});
+    const dpB1={x:cBC-2.5,y:y}, dpB2={x:cBC+2.5,y:y};
+    draws.push(dpB1); draws.push(dpB2);
+    tramos.push({tipo:"produccion",pts:[{x:X[1],y:y-dyc},dpB1]}); // C2der ↗
+    tramos.push({tipo:"produccion",pts:[{x:X[2],y:y+dyc},dpB2]}); // C3 ↙
   }
-  // botaderos arriba (descarga) + tramos que suben a ellos
-  botaderos=[{x:xs[0],y:YT+30},{x:xs[2],y:YT+30}];
-  tramos.push({tipo:"produccion",pts:[{x:xs[0],y:YT},{x:xs[0],y:YT+26}]});
-  tramos.push({tipo:"produccion",pts:[{x:xs[2],y:YT},{x:xs[2],y:YT+26}]});
-  // vista inicial para que se vea completo y aireado
-  view={x:-90,y:-25,k:2.0};
+  // rampa superior (sube por la izquierda al tope) + rama inferior
+  const RL=176;
+  tramos.push({tipo:"rampa",pts:[{x:-RL,y:-28},{x:-RL,y:YT-8,curva:true,cx:-RL,cy:YT-8},{x:-RL+30,y:YT},{x:X[0],y:YT}]});
+  tramos.push({tipo:"rampa",pts:[{x:-RL,y:-28},{x:-RL+18,y:-8,curva:true,cx:-RL+18,cy:-8},{x:X[0],y:0}]});
+  // piques de traspaso: uno izq (sobre C1), uno medio (sobre C2)
+  botaderos=[{x:X[0],y:YT+BOT_DY},{x:X[1],y:YT+BOT_DY}];
+  tramos.push({tipo:"produccion",pts:[{x:X[0],y:YT},{x:X[0],y:YT+BOT_DY-4}]});
+  tramos.push({tipo:"produccion",pts:[{x:X[1],y:YT},{x:X[1],y:YT+BOT_DY-4}]});
+  view={x:-95,y:-25,k:2.0};
 }
 
 // ---- transform ----
@@ -193,8 +207,8 @@ function evPt(e){const r=rect();const cx=(e.touches?e.touches[0].clientX:e.clien
   const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;return S2W(cx,cy);}
 
 // ---- history ----
-function push(){hist.push(JSON.stringify({tramos,draws,bells,botaderos,hawks,cardinals}));if(hist.length>100)hist.shift();}
-function undo(){if(!hist.length)return;const s=JSON.parse(hist.pop());tramos=s.tramos;draws=s.draws;bells=s.bells;botaderos=s.botaderos;hawks=s.hawks||[];cardinals=s.cardinals||[];render();}
+function push(){hist.push(JSON.stringify({tramos,draws,bells,botaderos,hawks,cardinals,enlaces}));if(hist.length>100)hist.shift();}
+function undo(){if(!hist.length)return;const s=JSON.parse(hist.pop());tramos=s.tramos;draws=s.draws;bells=s.bells;botaderos=s.botaderos;hawks=s.hawks||[];cardinals=s.cardinals||[];enlaces=s.enlaces||[];render();}
 
 // ---- hit tests (en mundo) ----
 function near(a,b,d){return Math.hypot(a.x-b.x,a.y-b.y)<d;}
@@ -293,6 +307,17 @@ svg.addEventListener("pointerdown",e=>{
     tramos.splice(b.t,1);
     unirSel=null; curTramo=-1; render();
     return;}
+  if(tool==="mesh"){
+    const h=hitNode(p);
+    // solo AP (hawk/card) sirven como extremo de enlace mesh
+    if(!h||(h.tipo!=="hawk"&&h.tipo!=="card")){meshSel=null;render();return;}
+    const ap={t:h.tipo,i:h.i};
+    if(!meshSel){meshSel=ap;render();return;}
+    if(meshSel.t===ap.t&&meshSel.i===ap.i){meshSel=null;render();return;} // mismo AP: cancela
+    push();
+    enlaces.push({a:meshSel,b:ap});
+    meshSel=null; render(); return;
+  }
   if(tool==="curvar"){const hs=hitSeg(p);if(hs){push();drag={tipo:"curva",t:hs.t,i:hs.i};}return;}
   push();
   if(tool==="produccion"||tool==="rampa"){
@@ -344,8 +369,12 @@ function del(h){if(h.tipo==="node")tramos[h.t].pts.splice(h.i,1);
   else if(h.tipo==="draw")draws.splice(h.i,1);
   else if(h.tipo==="bell")bells.splice(h.i,1);
   else if(h.tipo==="bot")botaderos.splice(h.i,1);
-  else if(h.tipo==="hawk")hawks.splice(h.i,1);
-  else if(h.tipo==="card")cardinals.splice(h.i,1);}
+  else if(h.tipo==="hawk"||h.tipo==="card"){
+    // borra el AP y limpia/reindexa los enlaces que lo referencian
+    enlaces=enlaces.filter(e=>!((e.a.t===h.tipo&&e.a.i===h.i)||(e.b.t===h.tipo&&e.b.i===h.i)));
+    enlaces.forEach(e=>{ if(e.a.t===h.tipo&&e.a.i>h.i)e.a.i--; if(e.b.t===h.tipo&&e.b.i>h.i)e.b.i--; });
+    (h.tipo==="hawk"?hawks:cardinals).splice(h.i,1);
+  }}
 
 // ---- render ----
 function segPath(pts){
@@ -398,6 +427,16 @@ function render(){
   draws.forEach(d=>svg.appendChild(el("circle",{cx:sx(d),cy:sy(d),r:5,fill:"#1E9E77",stroke:"#0C5B41","stroke-width":1.4})));
   // botaderos
   botaderos.forEach(b=>{svg.appendChild(el("circle",{cx:sx(b),cy:sy(b),r:9,fill:"#33322E",stroke:"#000","stroke-width":1.3}));});
+  // ENLACES MESH entre AP (líneas verdes) — se dibujan primero (debajo de los AP)
+  function apPos(ref){ const arr=ref.t==="hawk"?hawks:cardinals; return arr[ref.i]; }
+  enlaces.forEach(e=>{
+    const A=apPos(e.a), B=apPos(e.b); if(!A||!B) return;
+    const a=W2S(A), b=W2S(B);
+    svg.appendChild(el("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:"#2ec27e","stroke-width":2.2,"stroke-dasharray":"7 4",opacity:0.85}));
+  });
+  // AP seleccionado para enlazar (aro amarillo)
+  if(meshSel){ const S=apPos(meshSel); if(S){const s=W2S(S);
+    svg.appendChild(el("circle",{cx:s.x,cy:s.y,r:11,fill:"none",stroke:"#f0b429","stroke-width":2.5}));}}
   // AP: círculo de cobertura + antena
   const Rcob=(parseFloat($("cobertura").value)||60)/(parseFloat($("escala").value)||1)*view.k;
   const verCob=$("vercob").checked;
@@ -423,20 +462,20 @@ function render(){
 
 // ---- herramientas UI ----
 document.querySelectorAll(".tool").forEach(b=>b.onclick=()=>{
-  tool=b.dataset.t;curTramo=-1;unirSel=null;
+  tool=b.dataset.t;curTramo=-1;unirSel=null;meshSel=null;
   document.querySelectorAll(".tool").forEach(x=>x.classList.remove("on"));
   b.classList.add("on");
   $("modo").textContent=b.textContent;$("hint").textContent=HINTS[tool];
 });
 $("nuevo").onclick=()=>{push();curTramo=-1;const tp=(tool==="rampa")?"rampa":"produccion";tramos.push({tipo:tp,pts:[]});curTramo=tramos.length-1;};
 $("deshacer").onclick=undo;
-$("limpiar").onclick=()=>{if(confirm("¿Borrar todo el mapa?")){push();tramos=[];draws=[];bells=[];botaderos=[];hawks=[];cardinals=[];curTramo=-1;render();}};
+$("limpiar").onclick=()=>{if(confirm("¿Borrar todo el mapa?")){push();tramos=[];draws=[];bells=[];botaderos=[];hawks=[];cardinals=[];enlaces=[];curTramo=-1;render();}};
 $("recargar").onclick=()=>{if(confirm("¿Recargar la geometría inicial (El Teniente completo)? Se perderán tus cambios no guardados.")){push();initGeom();render();}};
 $("escala").oninput=render;
 $("cobertura").oninput=render;
 $("vercob").onchange=render;
 
-$("guardar").onclick=()=>{localStorage.setItem("mapaNV1640",JSON.stringify({tramos,draws,bells,botaderos,hawks,cardinals,view}));
+$("guardar").onclick=()=>{localStorage.setItem("mapaNV1640",JSON.stringify({tramos,draws,bells,botaderos,hawks,cardinals,enlaces,view}));
   $("guardar").textContent="✓ Guardado";setTimeout(()=>$("guardar").textContent="Guardar (en este navegador)",1200);};
 
 $("exportar").onclick=()=>{
@@ -450,9 +489,12 @@ $("exportar").onclick=()=>{
   o+=`\nDrawbells (${bells.length}, mineral compartido): ${bells.map(m).join(", ")}\n`;
   o+=`Drawpoints (${draws.length}): ${draws.map(m).join(", ")}\n`;
   o+=`Botaderos (${botaderos.length}): ${botaderos.map(m).join(", ")}\n`;
-  o+=`\nAP Hawk (${hawks.length}): ${hawks.map(m).join(", ")}\n`;
-  o+=`AP Cardinal (${cardinals.length}): ${cardinals.map(m).join(", ")}\n`;
+  o+=`\nAP Hawk (${hawks.length}): ${hawks.map((p,i)=>`H${i+1}`+m(p)).join(", ")}\n`;
+  o+=`AP Cardinal (${cardinals.length}): ${cardinals.map((p,i)=>`C${i+1}`+m(p)).join(", ")}\n`;
   o+=`Radio de cobertura AP: ${parseFloat($("cobertura").value)||60} m\n`;
+  // enlaces mesh (topología de red entre AP)
+  const nom=r=> (r.t==="hawk"?"H":"C")+(r.i+1);
+  o+=`\nEnlaces mesh (${enlaces.length}): ${enlaces.map(e=>nom(e.a)+"—"+nom(e.b)).join(", ")}\n`;
   $("out").value=o;
 };
 $("copiar").onclick=()=>{$("out").select();document.execCommand("copy");
@@ -461,7 +503,7 @@ $("copiar").onclick=()=>{$("out").select();document.execCommand("copy");
 // ---- init ----
 (function(){
   const saved=localStorage.getItem("mapaNV1640");
-  if(saved){try{const s=JSON.parse(saved);tramos=s.tramos;draws=s.draws;bells=s.bells;botaderos=s.botaderos;hawks=s.hawks||[];cardinals=s.cardinals||[];if(s.view)view=s.view;}catch(e){initGeom();}}
+  if(saved){try{const s=JSON.parse(saved);tramos=s.tramos;draws=s.draws;bells=s.bells;botaderos=s.botaderos;hawks=s.hawks||[];cardinals=s.cardinals||[];enlaces=s.enlaces||[];if(s.view)view=s.view;}catch(e){initGeom();}}
   else initGeom();
   $("hint").textContent=HINTS[tool];
   window.addEventListener("resize",render);
