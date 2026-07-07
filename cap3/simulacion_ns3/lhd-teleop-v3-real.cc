@@ -42,6 +42,7 @@
 #include <string>
 
 #include "geometria_nv1640.h"   // geometría real autogenerada (namespace geo)
+#include "recorrido_nv1640.h"   // recorrido real del LHD (mismo que el GIF, namespace rec)
 
 using namespace ns3;
 
@@ -239,36 +240,23 @@ static void PosLog ()
 // ============================================================================
 static void BuildRoute (Ptr<WaypointMobilityModel> mob, double speed, double simTime)
 {
-  using geo::X_GAL; using geo::Y_TOP; using geo::Y_BASE;
-  double gI=X_GAL[0], gC=X_GAL[1];
-  // waypoints (x,y) del ciclo — sobre galerías/cruceros
-  std::vector<std::pair<double,double>> wp = {
-    {-60.0, Y_TOP}, {gI, Y_TOP},               // entra por rampa al crucero superior
-    {gI, 40.0},                                  // baja galería 1
-    {gI, 30.0},                                  // llega a nivel de drawpoint (carga)
-    {gI, 40.0}, {gI, Y_TOP},                     // reversa y sube
-    {geo::PIQUES[0].x, Y_TOP},                    // va al pique 1 (descarga)
-    {gC, Y_TOP}, {gC, 75.0}, {gC, Y_TOP},        // cruza a galería central, carga, vuelve
-    {geo::PIQUES[1].x, Y_TOP},                    // pique 2 (descarga)
-  };
-  double t=0.0;
-  const double MIN_DT=0.5;   // s mínimo entre waypoints (evita tiempos repetidos)
-  auto add=[&](double x,double y){ mob->AddWaypoint(Waypoint(Seconds(t),Vector(x,y,HEIGHT_LHD))); };
-  add(wp[0].first, wp[0].second);
-  for(size_t i=1;i<wp.size();i++){
-    double d=std::hypot(wp[i].first-wp[i-1].first, wp[i].second-wp[i-1].second);
-    t += std::max(d/speed, MIN_DT); add(wp[i].first, wp[i].second);
-  }
-  // repetir el ciclo (ida y vuelta) hasta cubrir simTime
-  while(t < simTime+30.0){
-    for(int i=(int)wp.size()-2;i>=0;i--){
-      double d=std::hypot(wp[i].first-wp[i+1].first, wp[i].second-wp[i+1].second);
-      t+=std::max(d/speed, MIN_DT); add(wp[i].first,wp[i].second);
+  // Usa el recorrido REAL del GIF (recorrido_nv1640.h): grafo Dijkstra + maniobras
+  // de encarar/rodear/reversa/carga/descarga. Se repite el ciclo hasta simTime.
+  (void)speed;
+  const auto &R = rec::RECORRIDO;
+  double tBase = 0.0;
+  int ciclo = 0;
+  while (tBase < simTime + 30.0)
+  {
+    for (size_t i = 0; i < R.size (); i++)
+    {
+      double t = tBase + R[i].t;
+      // evita tiempo duplicado en el empalme entre ciclos
+      if (ciclo > 0 && i == 0) continue;
+      mob->AddWaypoint (Waypoint (Seconds (t), Vector (R[i].x, R[i].y, HEIGHT_LHD)));
     }
-    for(size_t i=1;i<wp.size();i++){
-      double d=std::hypot(wp[i].first-wp[i-1].first, wp[i].second-wp[i-1].second);
-      t+=std::max(d/speed, MIN_DT); add(wp[i].first,wp[i].second);
-    }
+    tBase += rec::CICLO_DUR + 1.0;   // +1s de separación entre ciclos
+    ciclo++;
   }
 }
 
