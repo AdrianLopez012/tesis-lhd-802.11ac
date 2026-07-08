@@ -1,0 +1,86 @@
+<svg width="100%" viewBox="0 0 680 620" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Arquitectura de la red 802.11ac para teleoperación del LHD en NV1640</title>
+<desc>Tres capas: centro de control con estación de teleoperación y controlador de red; backbone de fibra óptica en anillo con switches core y de acceso; capa de acceso inalámbrico con 5 AP Hawk y 7 AP Cardinal en malla InstaMesh que dan cobertura al LHD móvil. Tres flujos con QoS: vídeo, comandos y telemetría.</desc>
+
+<defs>
+<marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+<path d="M0,0 L8,4 L0,8 Z" fill="#5B6470"/>
+</marker>
+</defs>
+
+<style>
+.tt{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:15px;fill:#1f2933}
+.th{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:13px;fill:#1f2933}
+.tb{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:600;font-size:11.5px;fill:#25303b}
+.ts{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:10px;fill:#52606d}
+.tl{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:600;font-size:9.5px;fill:#3E5C49}
+.lyr{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:11px;fill:#8895a3;letter-spacing:1px}
+</style>
+
+<text x="40" y="28" class="tt">Arquitectura de la red IEEE 802.11ac — teleoperación LHD, NV1640</text>
+<text x="40" y="46" class="ts">Nexa Cerro Lindo · 5 GHz · 40 MHz · 2×2 MIMO · QoS 802.11e/WMM</text>
+
+<text x="40" y="76" class="lyr">CENTRO DE CONTROL</text>
+<rect x="40" y="84" width="600" height="70" rx="8" fill="#EEF3F8" stroke="#C4D3E0"/>
+<rect x="60" y="98" width="180" height="44" rx="6" fill="#fff" stroke="#9DB4C8"/>
+<text x="150" y="118" text-anchor="middle" class="tb">Estación de teleoperación</text>
+<text x="150" y="133" text-anchor="middle" class="ts">vídeo · mando · telemetría</text>
+<rect x="260" y="98" width="180" height="44" rx="6" fill="#fff" stroke="#9DB4C8"/>
+<text x="350" y="118" text-anchor="middle" class="tb">Controlador de red</text>
+<text x="350" y="133" text-anchor="middle" class="ts">gestión mesh · QoS · seguridad</text>
+<rect x="460" y="98" width="160" height="44" rx="6" fill="#fff" stroke="#9DB4C8"/>
+<text x="540" y="118" text-anchor="middle" class="tb">Gateway InstaMesh</text>
+<text x="540" y="133" text-anchor="middle" class="ts">Rajant SLP-1025</text>
+
+<line x1="350" y1="154" x2="350" y2="178" stroke="#5B6470" stroke-width="1.6" marker-end="url(#ar)"/>
+
+<text x="40" y="196" class="lyr">BACKBONE — FIBRA ÓPTICA EN ANILLO (1 GbE)</text>
+<rect x="40" y="204" width="600" height="66" rx="8" fill="#E8F0EA" stroke="#B9CDBE"/>
+<rect x="70" y="218" width="200" height="40" rx="6" fill="#fff" stroke="#8FB39A"/>
+<text x="170" y="235" text-anchor="middle" class="tb">Switch core</text>
+<text x="170" y="250" text-anchor="middle" class="ts">Fortinet FSR-424F-POE</text>
+<rect x="410" y="218" width="200" height="40" rx="6" fill="#fff" stroke="#8FB39A"/>
+<text x="510" y="235" text-anchor="middle" class="tb">Switch de acceso</text>
+<text x="510" y="250" text-anchor="middle" class="ts">Fortinet FSR-112F-POE</text>
+<path d="M270,238 L410,238" stroke="#5B8A6A" stroke-width="2.2" fill="none"/>
+<path d="M270,246 q70,22 140,0" stroke="#5B8A6A" stroke-width="2.2" fill="none" stroke-dasharray="4 3"/>
+<text x="340" y="232" text-anchor="middle" class="tl">SMF 1310 nm</text>
+<text x="340" y="270" text-anchor="middle" class="tl">anillo redundante</text>
+
+<line x1="340" y1="270" x2="340" y2="298" stroke="#5B6470" stroke-width="1.6" marker-end="url(#ar)"/>
+
+<text x="40" y="316" class="lyr">ACCESO INALÁMBRICO — MALLA InstaMesh (12 AP)</text>
+<rect x="40" y="324" width="600" height="150" rx="8" fill="#F4F1EA" stroke="#D8D0BE"/>
+
+<text x="58" y="348" class="th">5 AP Hawk</text>
+<text x="58" y="362" class="ts">galerías · 30 dBm / 11 dBi</text>
+<rect x="200" y="338" width="70" height="30" rx="5" fill="#DCE7F2" stroke="#7FA0C0"/><text x="235" y="357" text-anchor="middle" class="tb">H1</text>
+<rect x="278" y="338" width="70" height="30" rx="5" fill="#DCE7F2" stroke="#7FA0C0"/><text x="313" y="357" text-anchor="middle" class="tb">H2</text>
+<rect x="356" y="338" width="70" height="30" rx="5" fill="#DCE7F2" stroke="#7FA0C0"/><text x="391" y="357" text-anchor="middle" class="tb">H3</text>
+<rect x="434" y="338" width="70" height="30" rx="5" fill="#DCE7F2" stroke="#7FA0C0"/><text x="469" y="357" text-anchor="middle" class="tb">H4</text>
+<rect x="512" y="338" width="70" height="30" rx="5" fill="#DCE7F2" stroke="#7FA0C0"/><text x="547" y="357" text-anchor="middle" class="tb">H5</text>
+
+<text x="58" y="404" class="th">7 AP Cardinal</text>
+<text x="58" y="418" class="ts">cruceros · 23 dBm / 7.5 dBi</text>
+<rect x="188" y="394" width="58" height="30" rx="5" fill="#E7DEF0" stroke="#A98FC0"/><text x="217" y="413" text-anchor="middle" class="tb">C1</text>
+<rect x="252" y="394" width="58" height="30" rx="5" fill="#E7DEF0" stroke="#A98FC0"/><text x="281" y="413" text-anchor="middle" class="tb">C2</text>
+<rect x="316" y="394" width="58" height="30" rx="5" fill="#E7DEF0" stroke="#A98FC0"/><text x="345" y="413" text-anchor="middle" class="tb">C3</text>
+<rect x="380" y="394" width="58" height="30" rx="5" fill="#E7DEF0" stroke="#A98FC0"/><text x="409" y="413" text-anchor="middle" class="tb">C4</text>
+<rect x="444" y="394" width="58" height="30" rx="5" fill="#E7DEF0" stroke="#A98FC0"/><text x="473" y="413" text-anchor="middle" class="tb">C5</text>
+<rect x="508" y="394" width="34" height="30" rx="5" fill="#E7DEF0" stroke="#A98FC0"/><text x="525" y="413" text-anchor="middle" class="tb">C6</text>
+<rect x="548" y="394" width="34" height="30" rx="5" fill="#E7DEF0" stroke="#A98FC0"/><text x="565" y="413" text-anchor="middle" class="tb">C7</text>
+<text x="391" y="446" text-anchor="middle" class="tl">enlaces mesh L2 entre AP (make-before-break, sin root)</text>
+<line x1="200" y1="452" x2="582" y2="452" stroke="#B0A98F" stroke-width="1" stroke-dasharray="3 3"/>
+
+<line x1="391" y1="474" x2="391" y2="500" stroke="#5B6470" stroke-width="1.6" marker-end="url(#ar)"/>
+<text x="401" y="491" class="ts">roaming</text>
+
+<rect x="230" y="506" width="322" height="52" rx="8" fill="#FDF0E4" stroke="#E0B98C"/>
+<text x="391" y="527" text-anchor="middle" class="th">LHD teleoperado (móvil)</text>
+<text x="391" y="544" text-anchor="middle" class="ts">radio Cardinal 23 dBm + antena HELI-40 (4.8 dBi) · 2×2 MIMO</text>
+
+<rect x="40" y="576" width="600" height="30" rx="6" fill="#F7F6F2" stroke="#DDD8CC"/>
+<circle cx="60" cy="591" r="5" fill="#C77D4A"/><text x="70" y="595" class="ts">Vídeo (AC_VI, 40 Mbps)</text>
+<circle cx="245" cy="591" r="5" fill="#3E7D5A"/><text x="255" y="595" class="ts">Comandos (AC_VO, ≤0.5 Mbps)</text>
+<circle cx="455" cy="591" r="5" fill="#7FA0C0"/><text x="465" y="595" class="ts">Telemetría (AC_BE, 0.1 Mbps)</text>
+</svg>
