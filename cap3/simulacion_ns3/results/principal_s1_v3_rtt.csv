@@ -1,0 +1,6 @@
+metric,value_ms
+rtt_media,4.18342
+rtt_p95,11
+owd_cmd,2.16287
+owd_tel,2.02056
+umbral,40

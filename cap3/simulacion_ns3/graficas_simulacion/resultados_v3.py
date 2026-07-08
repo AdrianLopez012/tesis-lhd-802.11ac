@@ -74,6 +74,22 @@ def stat(grp,key):
     ci = 1.96*s/np.sqrt(len(a)) if len(a)>1 else 0.0
     return m,s,ci,a
 
+# RTT y disponibilidad (CSVs propios por semilla)
+def leer_metric(patron, clave):
+    vals=[]
+    for p in sorted(glob.glob(os.path.join(RES,patron))):
+        for r in csv.DictReader(open(p)):
+            if r.get("metric")==clave:
+                try: vals.append(float(r["value_ms" if "value_ms" in r else "value"]))
+                except: pass
+    return np.array(vals)
+def stat_arr(a):
+    if len(a)==0: return None
+    m=a.mean(); ci=1.96*a.std(ddof=1)/np.sqrt(len(a)) if len(a)>1 else 0.0
+    return m,ci
+rtt_a  = leer_metric("principal_s*_v3_rtt.csv","rtt_media")
+disp_a = leer_metric("principal_s*_v3_disponibilidad.csv","disponibilidad_pct")
+
 fig,ax = plt.subplots(figsize=(12,4.6)); ax.axis("off")
 rows, colcols = [], []
 for grp,lbl,key,unit,thr,op in KPI:
@@ -82,6 +98,20 @@ for grp,lbl,key,unit,thr,op in KPI:
     med = f"{m:.2f}" + (f" ± {ci:.2f}" if n>1 else "")
     rows.append([grp, lbl, med, f"{'≤' if op=='<=' else '≥'} {thr:g} {unit}",
                  "Cumple" if ok else "No cumple"])
+    colcols.append(["white","white","white","white", C_OK_BG if ok else C_BAD_BG])
+# RTT del lazo de control (RNF)
+r = stat_arr(rtt_a)
+if r is not None:
+    ok = r[0] <= 40.0
+    med = f"{r[0]:.2f}" + (f" ± {r[1]:.2f}" if len(rtt_a)>1 else "")
+    rows.append(["Control", "RTT (lazo)", med, "≤ 40 ms", "Cumple" if ok else "No cumple"])
+    colcols.append(["white","white","white","white", C_OK_BG if ok else C_BAD_BG])
+# Disponibilidad del enlace (RNF-06)
+d = stat_arr(disp_a)
+if d is not None:
+    ok = d[0] >= 99.9
+    med = f"{d[0]:.2f}" + (f" ± {d[1]:.2f}" if len(disp_a)>1 else "") + " %"
+    rows.append(["Enlace", "Disponibilidad", med, "≥ 99.9 %", "Cumple" if ok else "No cumple"])
     colcols.append(["white","white","white","white", C_OK_BG if ok else C_BAD_BG])
 tab = ax.table(cellText=rows,
                colLabels=["Servicio","Indicador",

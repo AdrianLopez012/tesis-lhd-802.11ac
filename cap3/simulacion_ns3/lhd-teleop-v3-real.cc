@@ -43,6 +43,7 @@
 
 #include "geometria_nv1640.h"   // geometría real autogenerada (namespace geo)
 #include "recorrido_nv1640.h"   // recorrido real del LHD (mismo que el GIF, namespace rec)
+#include "parametros_rf.h"      // parámetros RF de datasheets autogenerados (namespace rf)
 
 using namespace ns3;
 
@@ -244,6 +245,9 @@ static double g_lastDeAssocT = -1.0;      // instante del último DeAssoc pendie
 static std::string g_lastAp = "";         // AP servidor previo
 static std::vector<double> g_hoDur;       // duraciones de handover (ms)
 static uint32_t g_assocCount = 0;
+// para disponibilidad (RNF-06): muestras de RSSI por segundo
+static uint32_t g_rssiTotal = 0, g_rssiOk = 0;
+static const double RSSI_USABLE_DBM = -82.0;   // umbral de enlace usable (54 Mbps)
 
 void OnAssoc (Mac48Address a)
 {
@@ -281,10 +285,11 @@ static void PosLog ()
     double pl = d<40.0 ? plD0+10*1.9*std::log10(d)
                        : plD0+10*1.9*std::log10(40.0)+10*3.4*std::log10(d/40.0);
     pl += NLOS_PENAL_DB*CrucesNlos(p.x,ap.x);
-    double rssi=ap.ptdbm+ap.gtdbi+4.8-pl-9.4;   // rxGain LHD=4.8 (HELI-40)
+    double rssi=ap.ptdbm+ap.gtdbi+rf::LHD_GR_DBI-pl-rf::L_SYSTEM_DB;   // Gr LHD (HELI-40)
     if(rssi>best){best=rssi;bid=ap.id;}
   }
   g_posLog<<std::fixed<<std::setprecision(2)<<t<<","<<p.x<<","<<p.y<<","<<bid<<","<<best<<"\n";
+  g_rssiTotal++; if(best>=RSSI_USABLE_DBM) g_rssiOk++;   // muestra para disponibilidad
   Simulator::Schedule(Seconds(1.0),&PosLog);
 }
 
@@ -323,7 +328,7 @@ int main (int argc, char *argv[])
 {
   std::string scenario = "mobility";
   double simTime=300.0, lhdSpeed=2.22, videoRate=40.0, cmdRate=0.5, telRate=0.1;
-  double txPowHawk=30.0, txPowCard=23.0, codecMs=35.0;
+  double txPowHawk=rf::HAWK_TXP_DBM, txPowCard=rf::CARD_TXP_DBM, codecMs=35.0;
   uint32_t seed=1;
 
   CommandLine cmd;
@@ -387,21 +392,21 @@ int main (int argc, char *argv[])
 
   WifiMacHelper macAp;
   std::vector<NetDeviceContainer> hawkDev(nHawks), cardDev(nCards);
-  YansWifiPhyHelper phyHawk=mkPhy(txPowHawk,11.0);
+  YansWifiPhyHelper phyHawk=mkPhy(txPowHawk,rf::HAWK_GT_DBI);
   const Time BEACON=MicroSeconds(102400);
   for(uint32_t i=0;i<nHawks;i++){
     macAp.SetType("ns3::ApWifiMac","Ssid",SsidValue(ssid),
                   "BeaconInterval",TimeValue(BEACON),"QosSupported",BooleanValue(true));
     NodeContainer n; n.Add(hawks.Get(i)); hawkDev[i]=wifi.Install(phyHawk,macAp,n);
   }
-  YansWifiPhyHelper phyCard=mkPhy(txPowCard,7.5);
+  YansWifiPhyHelper phyCard=mkPhy(txPowCard,rf::CARD_GT_DBI);
   for(uint32_t i=0;i<nCards;i++){
     macAp.SetType("ns3::ApWifiMac","Ssid",SsidValue(ssid),
                   "BeaconInterval",TimeValue(BEACON),"QosSupported",BooleanValue(true));
     NodeContainer n; n.Add(cards.Get(i)); cardDev[i]=wifi.Install(phyCard,macAp,n);
   }
   // LHD: STA con antena HELI-40 (4.8 dBi), radio Cardinal (23 dBm)
-  YansWifiPhyHelper phySta=mkPhy(txPowCard,4.8);
+  YansWifiPhyHelper phySta=mkPhy(rf::LHD_TXP_DBM,rf::LHD_GR_DBI);
   WifiMacHelper macSta;
   macSta.SetType("ns3::StaWifiMac","Ssid",SsidValue(ssid),
                  "ActiveProbing",BooleanValue(false),"QosSupported",BooleanValue(true));
@@ -451,8 +456,8 @@ int main (int argc, char *argv[])
 
   // registrar AP para PosLog
   g_aps.clear();
-  for(uint32_t i=0;i<nHawks;i++) g_aps.push_back({geo::HAWKS[i].x,geo::HAWKS[i].y,"H"+std::to_string(i+1),txPowHawk,11.0});
-  for(uint32_t i=0;i<nCards;i++) g_aps.push_back({geo::CARDINALS[i].x,geo::CARDINALS[i].y,"C"+std::to_string(i+1),txPowCard,7.5});
+  for(uint32_t i=0;i<nHawks;i++) g_aps.push_back({geo::HAWKS[i].x,geo::HAWKS[i].y,"H"+std::to_string(i+1),txPowHawk,rf::HAWK_GT_DBI});
+  for(uint32_t i=0;i<nCards;i++) g_aps.push_back({geo::CARDINALS[i].x,geo::CARDINALS[i].y,"C"+std::to_string(i+1),txPowCard,rf::CARD_GT_DBI});
 
   // ── Internet ──
   InternetStackHelper inet; inet.Install(control); inet.Install(lhd);
@@ -524,6 +529,8 @@ int main (int argc, char *argv[])
   out<<"flow,name,tx,rx,pdr_pct,plr_pct,owd_ms,owd_p95_ms,jitter_p95_ms,ip_tput_mbps,goodput_mbps,e2e_ms\n";
   std::cout<<"\n===== RESULTADOS v3 REAL ("<<scenario<<") =====\n";
   bool allOk=true;
+  // para RTT del lazo de control (comando bajada + telemetría subida)
+  double owdCmd=-1, owdTel=-1, p95Cmd=-1, p95Tel=-1, plrCmd=0, plrTel=0;
   for(auto &it:stats){
     auto ft=cls->FindFlow(it.first); auto &fs=it.second;
     double txP=fs.txPackets, rxP=fs.rxPackets; if(txP==0) continue;
@@ -544,7 +551,9 @@ int main (int argc, char *argv[])
              <<" | OWD="<<std::fixed<<std::setprecision(2)<<owd<<"ms P95="<<owdP95
              <<" | jitP95="<<jitP95<<"ms | PLR="<<plr<<"% | goodput="<<goodput<<"Mbps | E2E="<<e2e<<"ms\n";
     if(name=="Comandos"){ bool ok=(owd<=20.0)&&(plr<=0.5);
-      std::cout<<"   KPI OWD<=20ms & PLR<=0.5%: "<<(ok?"CUMPLE":"NO CUMPLE")<<"\n"; if(!ok)allOk=false; }
+      std::cout<<"   KPI OWD<=20ms & PLR<=0.5%: "<<(ok?"CUMPLE":"NO CUMPLE")<<"\n"; if(!ok)allOk=false;
+      owdCmd=owd; p95Cmd=owdP95; plrCmd=plr; }
+    if(name=="Telemetria"){ owdTel=owd; p95Tel=owdP95; plrTel=plr; }
     if(name=="Video"){ bool ok=(e2e<=150.0)&&(jitP95<=10.0)&&(goodput>=38.0)&&(plr<=1.0);
       std::cout<<"   KPI E2E<=150 jitP95<=10 goodput>=38 PLR<=1%: "<<(ok?"CUMPLE":"NO CUMPLE")<<"\n"; if(!ok)allOk=false; }
     out<<it.first<<","<<name<<","<<(uint32_t)txP<<","<<(uint32_t)rxP<<","<<pdr<<","<<plr<<","
@@ -569,6 +578,40 @@ int main (int argc, char *argv[])
     ho<<"umbral,150\n"; ho.close();
   } else {
     std::cout<<"\n[Handover] sin handovers duros (asociaciones totales="<<g_assocCount<<")\n";
+  }
+
+  // ── RTT del lazo de control (RNF: RTT<=40ms, P95<=40ms, P99<=60ms) ──
+  // El lazo de teleoperación cierra: comando (control->LHD) + respuesta/telemetría
+  // (LHD->control). RTT ~= OWD_comando + OWD_telemetria; el P95 se acota de forma
+  // conservadora sumando los P95 de ambos sentidos.
+  if(owdCmd>=0 && owdTel>=0){
+    double rtt=owdCmd+owdTel;
+    double rttP95=(p95Cmd>=0&&p95Tel>=0)?(p95Cmd+p95Tel):rtt;
+    bool rttOk=(rtt<=40.0);
+    std::cout<<"\n[RTT control] media="<<std::fixed<<std::setprecision(2)<<rtt
+             <<"ms (cmd "<<owdCmd<<" + tel "<<owdTel<<") | P95<="<<rttP95<<"ms\n";
+    std::cout<<"   KPI RTT<=40ms: "<<(rttOk?"CUMPLE":"NO CUMPLE")<<"\n";
+    if(!rttOk) allOk=false;
+    std::ofstream rttf("results/"+scenario+"_v3_rtt.csv");
+    rttf<<"metric,value_ms\nrtt_media,"<<rtt<<"\nrtt_p95,"<<rttP95
+      <<"\nowd_cmd,"<<owdCmd<<"\nowd_tel,"<<owdTel<<"\numbral,40\n"; rttf.close();
+  }
+
+  // ── Disponibilidad del enlace (RNF-06: >=99.9%) ──
+  // % del tiempo de operación con RSSI del mejor AP por encima del umbral usable
+  // (-82 dBm) — es decir, con enlace radioeléctrico apto para el servicio.
+  if(g_rssiTotal>0){
+    double disp=100.0*(double)g_rssiOk/(double)g_rssiTotal;
+    bool dispOk=(disp>=99.9);
+    std::cout<<"\n[Disponibilidad] enlace usable (RSSI>="<<RSSI_USABLE_DBM<<"dBm) = "
+             <<std::fixed<<std::setprecision(2)<<disp<<"% del recorrido ("
+             <<g_rssiOk<<"/"<<g_rssiTotal<<" muestras)\n";
+    std::cout<<"   KPI disponibilidad>=99.9% (RNF-06): "<<(dispOk?"CUMPLE":"NO CUMPLE")<<"\n";
+    if(!dispOk) allOk=false;
+    std::ofstream df("results/"+scenario+"_v3_disponibilidad.csv");
+    df<<"metric,value\ndisponibilidad_pct,"<<disp<<"\nmuestras_ok,"<<g_rssiOk
+      <<"\nmuestras_total,"<<g_rssiTotal<<"\numbral_rssi_dbm,"<<RSSI_USABLE_DBM
+      <<"\numbral_disp,99.9\n"; df.close();
   }
 
   fm->SerializeToXmlFile("results/"+scenario+"_v3_flowmon.xml",true,true);

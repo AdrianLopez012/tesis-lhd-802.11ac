@@ -11,7 +11,8 @@ Fuente única de verdad de los parámetros RF; el .cc los debe usar.
 # ---------------- ESTÁNDAR ----------------
 WIFI_STANDARD   = "802.11ac"     # Wave 2
 BANDA           = "5GHz"
-FREQ_HZ         = 5.5e9          # centro aprox banda 5.0-6.0 GHz (antenas 5-6 GHz)
+FREQ_HZ         = 5.0e9          # frecuencia de referencia del modelo (802.11ac 5 GHz);
+                                # consistente con el canal 40 MHz usado en la simulación NS-3
 ANCHO_CANAL_MHZ = 40            # típico en túnel (40 MHz; 80 MHz posible)
 MIMO_STREAMS    = 2             # 2x2 MIMO
 

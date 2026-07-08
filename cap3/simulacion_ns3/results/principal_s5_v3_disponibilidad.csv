@@ -1,0 +1,6 @@
+metric,value
+disponibilidad_pct,100
+muestras_ok,307
+muestras_total,307
+umbral_rssi_dbm,-82
+umbral_disp,99.9
