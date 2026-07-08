@@ -1,0 +1,4 @@
+time_s,event,ap_id,x,y,handover_ms
+0.12,assoc,H4,25.72,0.00,0.00
+83.66,deassoc,H4,0.00,117.49,0
+83.66,assoc,H3,0.00,117.49,1.14
