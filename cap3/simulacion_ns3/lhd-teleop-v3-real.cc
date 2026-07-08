@@ -91,6 +91,7 @@ static int CrucesNlos (double x1, double x2)
 // MODELO DE PROPAGACIÓN EN TÚNEL TWO-SLOPE (calibrado TamoGraph)
 // ============================================================================
 static const double NLOS_PENAL_DB = 10.0;   // dB por cada galería cruzada
+static const double DCORR = 20.0;           // distancia de correlación del shadowing (m)
 
 class TunnelPropagationLossModel : public PropagationLossModel
 {
@@ -110,11 +111,17 @@ public:
       .AddAttribute ("BreakpointDist","Distancia breakpoint (m)", DoubleValue (40.0),
                      MakeDoubleAccessor (&TunnelPropagationLossModel::m_dbp), MakeDoubleChecker<double> ())
       .AddAttribute ("SystemLossDb", "Perdidas de sistema (dB)", DoubleValue (9.4),
-                     MakeDoubleAccessor (&TunnelPropagationLossModel::m_systemLossDb), MakeDoubleChecker<double> ());
+                     MakeDoubleAccessor (&TunnelPropagationLossModel::m_systemLossDb), MakeDoubleChecker<double> ())
+      .AddAttribute ("SigmaLos",  "Desv. shadowing log-normal LOS (dB)",  DoubleValue (2.0),
+                     MakeDoubleAccessor (&TunnelPropagationLossModel::m_sigLos),  MakeDoubleChecker<double> ())
+      .AddAttribute ("SigmaNlos", "Desv. shadowing log-normal NLOS (dB)", DoubleValue (3.0),
+                     MakeDoubleAccessor (&TunnelPropagationLossModel::m_sigNlos), MakeDoubleChecker<double> ());
     return tid;
   }
   TunnelPropagationLossModel () { m_rand = CreateObject<NormalRandomVariable> (); }
   void SetNlosEnabled (bool e) { m_nlosEnabled = e; }
+  void SetShadowingEnabled (bool e) { m_shadowEnabled = e; }
+  void SetSeed (uint32_t s) { m_seed = s; }
 private:
   double DoCalcRxPower (double txPow, Ptr<MobilityModel> a, Ptr<MobilityModel> b) const override
   {
@@ -127,12 +134,46 @@ private:
     if (d < m_dbp) pl = plD0 + 10.0 * m_expLOS * std::log10 (d);
     else           pl = plD0 + 10.0 * m_expLOS * std::log10 (m_dbp)
                             + 10.0 * m_expNLOS * std::log10 (d / m_dbp);
-    if (m_nlosEnabled) pl += NLOS_PENAL_DB * CrucesNlos (pa.x, pb.x);
+    int cruces = CrucesNlos (pa.x, pb.x);
+    if (m_nlosEnabled) pl += NLOS_PENAL_DB * cruces;
+
+    // Shadowing (desvanecimiento lento) log-normal, correlacionado espacialmente.
+    // Es una propiedad del LUGAR donde está el receptor (obstáculos y geometría
+    // local), por lo que se modela como función de la posición del LHD (pb) y NO
+    // por AP de forma independiente: así, al entrar en una zona de sombra todos los
+    // enlaces bajan de forma coherente y se evita el "ping-pong" de roaming artificial
+    // (un componente pequeño por AP añade descorrelación realista sin provocarlo).
+    // Se muestrea en nodos separados DCORR=20 m y se INTERPOLA => variación continua
+    // (distancia de correlación realista, no ruido por paquete). Se ACOTA a ±2σ para
+    // descartar las colas irreales. σ mayor en NLOS (3 dB) que en LOS (2 dB): shadowing
+    // suave, representativo de galerías con LOS dominante a lo largo del túnel, coherente
+    // con las bandas del contraste TamoGraph. Ref.: shadowing log-normal en propagación
+    // en túneles/minas (Rappaport §4; medidas de campo en galerías de block caving).
+    if (m_shadowEnabled)
+    {
+      double sigma = (cruces > 0) ? m_sigNlos : m_sigLos;
+      long apTag = (long) std::floor (pa.x / 5.0);       // pequeña componente por AP
+      double s = pb.y / DCORR;                            // coordenada a lo largo de la galería
+      long n0 = (long) std::floor (s); double frac = s - n0;
+      auto sample = [&](long node)->double {
+        // dominado por la posición del receptor (lugar); apTag pesa poco (descorrelación leve)
+        uint64_t h = (uint64_t)(node * 6364136u + (apTag % 3) * 131u + 7919u)
+                     + (uint64_t)m_seed * 2246822519u;
+        double u1 = ((h * 2654435761u) & 0xffff) / 65536.0 + 1e-6;
+        double u2 = (((h >> 16) * 40503u) & 0xffff) / 65536.0;
+        double z  = std::sqrt (-2.0 * std::log (u1)) * std::cos (2.0 * M_PI * u2);
+        return std::max (-2.0, std::min (2.0, z));        // acotar a ±2σ
+      };
+      double z = sample (n0) * (1.0 - frac) + sample (n0 + 1) * frac;   // interpolación suave
+      pl += sigma * z;
+    }
     return txPow - pl - m_systemLossDb;
   }
   int64_t DoAssignStreams (int64_t s) override { m_rand->SetStream (s); return 1; }
   double m_expLOS {1.9}, m_expNLOS {3.4}, m_freq {5.0e9}, m_dbp {40.0}, m_systemLossDb {9.4};
-  bool m_nlosEnabled {true};
+  double m_sigLos {2.0}, m_sigNlos {3.0};
+  uint32_t m_seed {1};
+  bool m_nlosEnabled {true}, m_shadowEnabled {true};
   Ptr<NormalRandomVariable> m_rand;
 };
 NS_OBJECT_ENSURE_REGISTERED (TunnelPropagationLossModel);
@@ -318,6 +359,13 @@ int main (int argc, char *argv[])
   // ── Canal WiFi con modelo de túnel ──
   Ptr<TunnelPropagationLossModel> loss = CreateObject<TunnelPropagationLossModel>();
   loss->SetNlosEnabled(isMobility);
+  // Modelo de propagación DETERMINISTA y reproducible para los KPIs de red.
+  // La variabilidad por desvanecimiento (shadowing log-normal ±σ) se analiza aparte
+  // en el mapa de cobertura y el contraste TamoGraph (enfoque estándar en tesis:
+  // separar el análisis de propagación del de red). El modelo de shadowing existe
+  // en la clase (atributos SigmaLos/SigmaNlos) pero queda desactivado por defecto.
+  loss->SetShadowingEnabled(false);
+  loss->SetSeed(seed);
   Ptr<YansWifiChannel> chan = CreateObject<YansWifiChannel>();
   chan->SetPropagationDelayModel(CreateObject<ConstantSpeedPropagationDelayModel>());
   chan->SetPropagationLossModel(loss);
