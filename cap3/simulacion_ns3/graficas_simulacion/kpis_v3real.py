@@ -46,7 +46,9 @@ def load_pos_log(path):
     with open(path) as f:
         for r in csv.DictReader(f):
             t.append(float(r["time_s"])); x.append(float(r["x"])); y.append(float(r["y"]))
-            ap.append(r["serving_ap"]); rssi.append(float(r["rssi_dbm"]))
+            # best_ap = AP de mejor señal (cobertura); "serving_ap" era el nombre
+            # antiguo (impreciso) de la misma columna — se acepta por compatibilidad.
+            ap.append(r.get("best_ap") or r["serving_ap"]); rssi.append(float(r["rssi_dbm"]))
     return (np.array(t), np.array(x), np.array(y), ap, np.array(rssi))
 
 # Escenario de operación canónico: se usa una corrida de la batería vigente
@@ -100,11 +102,11 @@ ax1.axhline(-68, color="#E67E22", ls="--", lw=1.1)
 ax1.annotate("-68 dBm (300 Mbps)", (T.max(), -68), fontsize=8, color="#B9770E", ha="right", va="bottom")
 ax1.axhline(-82, color="#C0392B", ls=":", lw=1.1)
 ax1.annotate("-82 dBm (54 Mbps)", (T.max(), -82), fontsize=8, color="#C0392B", ha="right", va="bottom")
-ax1.set_xlabel("Tiempo (s)"); ax1.set_ylabel("RSSI del AP servidor (dBm)")
-ax1.set_title("RSSI y roaming a lo largo del recorrido")
+ax1.set_xlabel("Tiempo (s)"); ax1.set_ylabel("RSSI del mejor AP (dBm)")
+ax1.set_title("Nivel de señal disponible a lo largo del recorrido")
 ax1.set_ylim(-92, -2); ax1.grid(True, alpha=0.3)
 ax1.legend(ncol=3, fontsize=7.5, loc="lower left", framealpha=0.92,
-           title=f"AP servidor ({len(aps_unicos)} APs)", title_fontsize=8)
+           title=f"Mejor AP ({len(aps_unicos)} APs)", title_fontsize=8)
 
 # --- (2) tabla de KPIs con semáforo ---
 ax2 = fig.add_subplot(gs[0, 1]); ax2.axis("off")
@@ -216,8 +218,11 @@ leg = [Line2D([0],[0], marker="^", color="none", markerfacecolor="#1565C0", mark
        Line2D([0],[0], marker="s", color="none", markerfacecolor="#7B1FA2", markeredgecolor="#fff", markersize=11, label="AP Cardinal (23 dBm)"),
        Line2D([0],[0], marker="o", color="none", markerfacecolor="#0C5B41", markersize=8, label="Drawpoint")]
 axB.legend(handles=leg, loc="upper left", fontsize=9, framealpha=0.92)
+# % del recorrido con señal >= -68 dBm CALCULADO de los datos (nunca hardcodeado)
+pct68 = (RSSI >= -68).mean()*100
 axB.set_title("Recorrido real del LHD en la zona de producción coloreado por RSSI — NV1640\n"
-              f"RSSI entre {RSSI.max():.0f} y {RSSI.min():.0f} dBm · 100% ≥ -68 dBm (soporta vídeo 40 Mbps)",
+              f"RSSI entre {RSSI.max():.0f} y {RSSI.min():.0f} dBm · "
+              f"{pct68:.0f}% ≥ -68 dBm (soporta vídeo 40 Mbps)",
               fontsize=12.5, fontweight="bold")
 axB.set_xlabel("X (m)"); axB.set_ylabel("Y (m)"); axB.set_aspect("equal")
 axB.autoscale(); axB.grid(True, alpha=0.25)
@@ -232,4 +237,4 @@ for grp, lbl, key, thr, op in KPI_DEF:
     print(f"  {grp:11s} {lbl:16s} = {val:8.3f}  ({op}{thr:g})  {'CUMPLE' if ok else 'NO'}")
 print(f"\nGLOBAL: {'TODOS CUMPLEN' if glob else 'ALGUNOS NO CUMPLEN'}")
 print(f"RSSI recorrido: min {RSSI.min():.1f} / media {RSSI.mean():.1f} / max {RSSI.max():.1f} dBm")
-print(f"APs que sirvieron: {len(aps_unicos)} | cambios de AP: {sum(1 for i in range(1,len(AP)) if AP[i]!=AP[i-1])}")
+print(f"APs de mejor señal: {len(aps_unicos)} | traspasos de mejor señal: {sum(1 for i in range(1,len(AP)) if AP[i]!=AP[i-1])}")

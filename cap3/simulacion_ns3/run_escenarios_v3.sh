@@ -6,8 +6,8 @@
 # simulación es independiente (semilla propia, ficheros de salida propios), en
 # este entorno WSL la ejecución en paralelo (binario directo o varios
 # `./ns3 run` a la vez) SE CUELGA por contención del directorio de build de
-# ns-3. NO paralelizar: la batería completa en serie tarda ~30-35 min pero es
-# 100% fiable y reproducible.
+# ns-3. NO paralelizar: la batería completa en serie tarda ~3 HORAS (medido:
+# 10714 s la corrida del 2026-07-09) pero es 100% fiable y reproducible.
 #
 #   1. principal  — 10 semillas (media +/- IC) del escenario de operación
 #   2. baseline   — LHD estático (referencia sin movilidad)

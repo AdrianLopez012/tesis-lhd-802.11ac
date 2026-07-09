@@ -70,6 +70,19 @@ static int GalIndex (double x)
 }
 
 // Distancia por ruta de túnel entre dos puntos (x1,y1)-(x2,y2).
+//
+// SUPUESTO FÍSICO (deliberado y conservador): a 5 GHz la señal NO atraviesa el
+// pilar de roca maciza de ~26 m que separa las galerías paralelas (la atenuación
+// de la roca es de decenas de dB/m => bloqueo total del rayo directo). Las zanjas
+// y drawbells que conectan calles vecinas tampoco se cuentan como camino RF,
+// porque en block caving operativo están cargados de mineral fragmentado (esa es
+// su función). Por tanto la señal solo viaja por las labores ABIERTAS: a lo largo
+// de la propia galería (LOS) y, entre galerías distintas, RODEANDO por los
+// cruceros, con una penalización de 10 dB por galería cruzada (difracción en
+// esquinas). Consecuencia: se subestima el RSSI de los AP situados a media altura
+// de galerías vecinas => el modelo es CONSERVADOR para cobertura y handover
+// (el AP servidor está casi siempre en la misma galería y no se ve afectado).
+//
 // Misma galería: |dy| + desvíos a la galería. Distinta: sube/baja al crucero
 // más cercano (Y_BASE o Y_TOP), cruza en X, y baja/sube.
 static double RouteDistance (double x1, double y1, double x2, double y2)
@@ -332,14 +345,19 @@ void OnDeAssoc (Mac48Address a)
     g_assocLog<<std::fixed<<std::setprecision(2)<<t<<",deassoc,"<<id<<","<<p.x<<","<<p.y<<",0\n"; }
 }
 
-// RSSI estimado del mejor AP (para el pos_log) — usa los MISMOS parámetros que
+// RSSI estimado por posición (para el pos_log) — usa los MISMOS parámetros que
 // DoCalcRxPower (leídos de g_loss) en vez de duplicar constantes, para que no
 // puedan desincronizarse si el modelo de propagación cambia de atributos.
+// Registra DOS cosas distintas (y las nombra con precisión):
+//   best_ap / rssi_dbm         = el AP de MEJOR señal en esa posición (cobertura
+//                                 disponible; base de la disponibilidad RNF-06).
+//   assoc_ap / rssi_assoc_dbm  = el AP al que el STA está ASOCIADO realmente en
+//                                 ese instante (con roaming estable pueden diferir).
 static void PosLog ()
 {
   double t=Simulator::Now().GetSeconds();
   Vector p=g_lhdMob->GetPosition();
-  double best=-999; std::string bid="?";
+  double best=-999, rssiAssoc=-999; std::string bid="?";
   double expLos=g_loss->GetExpLos(), expNlos=g_loss->GetExpNlos();
   double freq=g_loss->GetFreqHz(), dbp=g_loss->GetDbp(), sysLoss=g_loss->GetSystemLossDb();
   double lam=3.0e8/freq, plD0=20.0*std::log10(4.0*M_PI/lam);
@@ -350,8 +368,10 @@ static void PosLog ()
     pl += NLOS_PENAL_DB*CrucesNlos(p.x,ap.x);
     double rssi=ap.ptdbm+ap.gtdbi+rf::LHD_GR_DBI-pl-sysLoss;   // Gr LHD (HELI-40)
     if(rssi>best){best=rssi;bid=ap.id;}
+    if(ap.id==g_lastAp) rssiAssoc=rssi;
   }
-  g_posLog<<std::fixed<<std::setprecision(2)<<t<<","<<p.x<<","<<p.y<<","<<bid<<","<<best<<"\n";
+  g_posLog<<std::fixed<<std::setprecision(2)<<t<<","<<p.x<<","<<p.y<<","<<bid<<","<<best
+          <<","<<(g_lastAp.empty()?"?":g_lastAp)<<","<<rssiAssoc<<"\n";
   g_rssiTotal++; if(best>=RSSI_USABLE_DBM) g_rssiOk++;   // muestra para disponibilidad
   Simulator::Schedule(Seconds(1.0),&PosLog);
 }
@@ -583,7 +603,7 @@ int main (int argc, char *argv[])
   // ── Logs de posición/assoc ──
   if(isMobility){
     g_posLog.open("results/"+scenario+"_v3_pos_log.csv");
-    g_posLog<<"time_s,x,y,serving_ap,rssi_dbm\n";
+    g_posLog<<"time_s,x,y,best_ap,rssi_dbm,assoc_ap,rssi_assoc_dbm\n";
     Simulator::Schedule(Seconds(tStart),&PosLog);
     g_assocLog.open("results/"+scenario+"_v3_assoc_log.csv");
     g_assocLog<<"time_s,event,ap_id,x,y,handover_ms\n";
@@ -621,12 +641,16 @@ int main (int argc, char *argv[])
     // ancho de bin en ms (coincide con el DelayBinWidth/JitterBinWidth = 0.05 ms)
     auto dv=HistToSamples(fs.delayHistogram,0.05); auto jv=HistToSamples(fs.jitterHistogram,0.05);
     double owdP95=Percentile(dv,95.0), jitP95=Percentile(jv,95.0);
-    std::string name="Other"; double codecAdd=0; uint32_t pktPay=0;
-    if(ft.destinationPort==vidPort){name="Video";codecAdd=codecMs;pktPay=1400;}
-    else if(ft.destinationPort==cmdPort){name="Comandos";pktPay=128;}
-    else if(ft.destinationPort==telPort){name="Telemetria";pktPay=200;}
+    std::string name="Other"; double codecAdd=0;
+    if(ft.destinationPort==vidPort){name="Video";codecAdd=codecMs;}
+    else if(ft.destinationPort==cmdPort){name="Comandos";}
+    else if(ft.destinationPort==telPort){name="Telemetria";}
     else continue;
-    double goodput=(dur>0&&rxP>0)?(double)rxP*pktPay*8.0/dur/1e6:0.0;
+    // Goodput = payload de aplicación recibido: bytes IP menos cabeceras IP+UDP
+    // (28 B/paquete). Exacto también con VBR, donde el último paquete de cada
+    // frame es menor que la MTU (antes se asumía un tamaño fijo por paquete, lo
+    // que sobreestimaba el goodput de vídeo ~0.8%).
+    double goodput=(dur>0&&rxP>0)?((double)fs.rxBytes-28.0*rxP)*8.0/dur/1e6:0.0;
     double e2e=owd+codecAdd;
     std::cout<<"\n["<<name<<"] tx="<<(uint32_t)txP<<" rx="<<(uint32_t)rxP
              <<" | OWD="<<std::fixed<<std::setprecision(2)<<owd<<"ms P95="<<owdP95

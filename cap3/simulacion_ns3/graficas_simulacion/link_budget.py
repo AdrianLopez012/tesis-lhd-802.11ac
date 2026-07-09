@@ -45,6 +45,15 @@ def path_loss(d):
     if d < D_BP: return PL_D0 + 10 * N1 * np.log10(d)
     return PL_D0 + 10 * N1 * np.log10(D_BP) + 10 * N2 * np.log10(d / D_BP)
 
+def radio_max(tx_dbm, gt_dbi, sens_dbm):
+    """Distancia a la que Prx cae hasta la sensibilidad dada (invierte el two-slope).
+    Justifica el radio de diseño COBERTURA_AP: debe ser << que este radio máximo."""
+    pl_adm = tx_dbm + gt_dbi + GR_LHD - L_SYS - sens_dbm   # pérdida de trayecto admisible
+    pl_bp  = PL_D0 + 10 * N1 * np.log10(D_BP)              # pérdida en el breakpoint
+    if pl_adm <= pl_bp:
+        return 10 ** ((pl_adm - PL_D0) / (10 * N1))
+    return D_BP * 10 ** ((pl_adm - pl_bp) / (10 * N2))
+
 def link(tx_dbm, gt_dbi, d):
     pire = tx_dbm + gt_dbi                       # PIRE (sin pérdidas de sistema tx)
     pl = path_loss(d)
@@ -58,7 +67,16 @@ casos = [
 ]
 
 print(f"Distancia de diseño (radio cobertura AP): {D_DISENO:.0f} m")
-print(f"Pérdida de trayecto a {D_DISENO:.0f} m: {path_loss(D_DISENO):.1f} dB\n")
+print(f"Pérdida de trayecto a {D_DISENO:.0f} m: {path_loss(D_DISENO):.1f} dB")
+# radios máximos de cobertura del modelo para el enlace más exigente (Cardinal):
+# demuestran que el radio de diseño (60 m) está holgadamente dentro del alcance.
+_txc, _gtc = RF.CARDINAL["tx_power_dbm"], RF.CARDINAL["tx_gain_dbi"]
+R_VIDEO = radio_max(_txc, _gtc, SENS_VIDEO)
+R_BORDE = radio_max(_txc, _gtc, SENS_BORDE)
+print(f"Radio máx. del modelo (Cardinal→LHD): vídeo ({SENS_VIDEO:.0f} dBm) = {R_VIDEO:.0f} m"
+      f" | borde ({SENS_BORDE:.0f} dBm) = {R_BORDE:.0f} m")
+print(f"=> el radio de diseño ({D_DISENO:.0f} m) es {R_VIDEO/D_DISENO:.1f}x menor que el"
+      f" radio máximo de vídeo: cobertura con holgura.\n")
 
 # ---------------- construir tabla de link budget ----------------
 # filas del balance (comunes) + por enlace las específicas
@@ -115,7 +133,9 @@ ax.set_title("Presupuesto de enlace — enlace Cardinal → LHD a distancia de d
 plt.figtext(0.5, 0.03,
     f"El enlace más exigente (Cardinal, 23 dBm) mantiene un margen de "
     f"+{prx - SENS_VIDEO:.1f} dB sobre la sensibilidad de vídeo y "
-    f"+{prx - SENS_BORDE:.1f} dB en el borde de celda: cobertura holgada para teleoperación.",
+    f"+{prx - SENS_BORDE:.1f} dB en el borde de celda: cobertura holgada para teleoperación.\n"
+    f"El radio de diseño de {D_DISENO:.0f} m (espaciamiento de AP con solape) queda muy por "
+    f"debajo del alcance máximo del modelo: {R_VIDEO:.0f} m para vídeo y {R_BORDE:.0f} m en borde.",
     ha="center", fontsize=9.5, style="italic", color="#444", wrap=True)
 out = os.path.join(HERE, "link_budget.png")
 plt.savefig(out, dpi=155, bbox_inches="tight"); plt.close()

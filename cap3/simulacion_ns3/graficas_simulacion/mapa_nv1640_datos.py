@@ -137,4 +137,11 @@ CARDINALS_AP = [   # AP Cardinal (breadcrumbs, menor potencia)
     (52.0,  38.5),  # C6
     (52.4, 129.7),  # C7
 ]
-COBERTURA_AP = 60.0   # m — radio de cobertura usado por el usuario (a ajustar con datasheet)
+# Radio de DISEÑO de celda (m): distancia de trabajo asumida entre un AP y el LHD,
+# coherente con el espaciamiento real de los 12 AP a lo largo de las galerías
+# (~40-50 m entre AP consecutivos => solape de celdas con radio 60 m). NO es un
+# dato de datasheet: es un criterio de diseño, VERIFICADO en link_budget.py, que
+# calcula que a 60 m el enlace más exigente (Cardinal→LHD) conserva margen positivo
+# sobre la sensibilidad de vídeo, y que el radio máximo del modelo two-slope es
+# bastante mayor (se imprime al ejecutar link_budget.py).
+COBERTURA_AP = 60.0

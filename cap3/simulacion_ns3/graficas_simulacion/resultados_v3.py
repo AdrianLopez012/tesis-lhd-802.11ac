@@ -188,17 +188,19 @@ def load_assoc(path):
                 except: pass
     return ho
 # Agrega los handovers de TODAS las corridas del escenario de operación
-# (las 10 semillas + la corrida única) para una distribución representativa.
-ho=[]
+# (las semillas de la batería vigente) para una distribución representativa.
+ho=[]; n_runs=0
 for p in glob.glob(os.path.join(RES,"principal_s*_v3_assoc_log.csv")):
-    ho += load_assoc(p)
-# nº de traspasos de AP a nivel de señal (serving_ap) en el escenario de operación
+    ho += load_assoc(p); n_runs += 1
+# nº de traspasos de MEJOR señal (best_ap) en el escenario de operación — es el
+# cambio del AP de mayor RSSI a lo largo de la ruta, no la reasociación real del
+# STA (esa se mide con el assoc_log). Con roaming estable el STA cambia menos.
 def contar_cambios_ap(path):
     if not os.path.exists(path): return 0
     prev=None; n=0
     with open(path) as f:
         for r in csv.DictReader(f):
-            a=r["serving_ap"]
+            a=r.get("best_ap") or r["serving_ap"]
             if prev is not None and a!=prev: n+=1
             prev=a
     return n
@@ -220,10 +222,13 @@ axb.set_xlim(0,165); axb.set_ylim(-0.5,0.7); axb.set_yticks([])
 axb.set_xlabel("Tiempo de handover (ms)");
 for s in ["top","right","left"]: axb.spines[s].set_visible(False)
 # texto de conclusión
+reas = (f"solo se registró 1 reasociación con corte medible ({peor:.1f} ms)" if len(ho)==1
+        else f"se registraron {len(ho)} reasociaciones con corte medible (peor: {peor:.1f} ms)" if ho
+        else "no se registró ninguna reasociación con corte medible")
 txt=("El diseño emplea roaming L2 tipo mesh (Rajant InstaMesh, make-before-break): el enlace se\n"
-     f"mantiene durante el desplazamiento. A lo largo del recorrido el LHD es servido por distintos\n"
-     f"AP con {cambios} traspasos de mejor señal, y solo se registró {len(ho)} reasociación con corte medible\n"
-     f"({peor:.1f} ms), muy por debajo del requisito de 150 ms. Resultado agregado de 10 corridas.")
+     f"mantiene durante el desplazamiento. A lo largo de la ruta el mejor AP cambia {cambios} veces\n"
+     f"(traspasos de mejor señal), y {reas},\n"
+     f"muy por debajo del requisito de 150 ms. Resultado agregado de {n_runs} corridas.")
 fig.text(0.5,0.14,txt,ha="center",va="center",fontsize=10.5,color="#333")
 out3=os.path.join(HERE,"resultados_handover.png")
 plt.savefig(out3,dpi=155,bbox_inches="tight"); plt.close()
@@ -237,7 +242,9 @@ def load_pos(path):
     with open(path) as f:
         for r in csv.DictReader(f):
             T.append(float(r["time_s"]));X.append(float(r["x"]));Y.append(float(r["y"]))
-            AP.append(r["serving_ap"]);R.append(float(r["rssi_dbm"]))
+            # best_ap = AP de mejor señal (cobertura); "serving_ap" era el nombre
+            # antiguo (impreciso) de la misma columna — se acepta por compatibilidad.
+            AP.append(r.get("best_ap") or r["serving_ap"]);R.append(float(r["rssi_dbm"]))
     return np.array(T),np.array(X),np.array(Y),AP,np.array(R)
 pos_path=os.path.join(RES,OP_STEM+"_pos_log.csv")
 if os.path.exists(pos_path):
@@ -255,10 +262,10 @@ if os.path.exists(pos_path):
         m=np.array([s==a for s in AP]); ax1.scatter(T[m],R[m],s=14,color=col[a],label=a,zorder=3)
     ax1.axhline(-68,color="#B9770E",ls="--",lw=1.1); ax1.annotate("−68 dBm (300 Mbps)",(T.max(),-68),fontsize=8,ha="right",va="bottom",color="#B9770E")
     ax1.axhline(-82,color=C_BAD,ls=":",lw=1.1); ax1.annotate("−82 dBm (54 Mbps)",(T.max(),-82),fontsize=8,ha="right",va="bottom",color=C_BAD)
-    ax1.set_xlabel("Tiempo (s)");ax1.set_ylabel("RSSI del AP servidor (dBm)")
-    ax1.set_title("Nivel de señal y traspaso entre AP durante el recorrido")
+    ax1.set_xlabel("Tiempo (s)");ax1.set_ylabel("RSSI del mejor AP (dBm)")
+    ax1.set_title("Nivel de señal disponible y traspasos de mejor AP durante el recorrido")
     ax1.set_ylim(-92,-2);ax1.grid(True,alpha=0.3)
-    ax1.legend(ncol=3,fontsize=7.5,loc="lower left",framealpha=0.92,title=f"AP servidor ({len(aps_u)})",title_fontsize=8)
+    ax1.legend(ncol=3,fontsize=7.5,loc="lower left",framealpha=0.92,title=f"Mejor AP ({len(aps_u)})",title_fontsize=8)
     # CDF
     rs=np.sort(R);cdf=np.arange(1,len(rs)+1)/len(rs)*100
     ax2.plot(rs,cdf,color="#2C5D7C",lw=2.3);ax2.fill_between(rs,0,cdf,color=C_BAR,alpha=0.15)

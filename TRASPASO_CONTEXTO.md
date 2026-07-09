@@ -61,7 +61,12 @@
 - **IMPORTANTE (aprendido):** las simulaciones **NO se pueden paralelizar** en este WSL
   (tanto el binario directo como varios `./ns3 run` a la vez se CUELGAN por contención
   del directorio de build de ns-3). Se corren **EN SERIE**. La batería completa (14
-  corridas de 300 s) tarda ~30-35 min. Es lento pero 100% fiable.
+  corridas de 300 s) tarda **~3 HORAS** (medido: 10714 s el 2026-07-09; una versión
+  anterior de este documento decía 30-35 min por error). Es lento pero 100% fiable.
+- **Lanzar la batería en background desde Windows:** usar `setsid nohup ... < /dev/null &`
+  y VERIFICAR con `pgrep` que el proceso vive antes de dar por lanzado. Un `nohup ... &`
+  simple dentro de `wsl.exe -e bash -c "..."` MUERE al cerrar la sesión (aprendido:
+  un lanzamiento falló silenciosamente y el log viejo dio un falso "completado").
 - La batería se lanza con `nohup` y se monitorea leyendo `~/bateria_v3.log`:
   ```bash
   cp run_escenarios_v3.sh ~/ && cd ~ && nohup bash run_escenarios_v3.sh > ~/bateria_v3.log 2>&1 &
