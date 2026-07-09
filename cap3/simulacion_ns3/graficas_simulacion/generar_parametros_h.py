@@ -34,7 +34,10 @@ with open(out, "w", encoding="utf-8") as f:
     f.write(f"  static const double LHD_TXP_DBM    = {RF.LHD_ANTENA['tx_power_dbm']:.1f};\n")
     f.write(f"  static const double LHD_GR_DBI     = {RF.LHD_ANTENA['gain_dbic']:.1f};\n\n")
     f.write("  // Perdidas de sistema (cables/conectores/margen)\n")
-    f.write(f"  static const double L_SYSTEM_DB    = {RF.L_SYSTEM_DB:.1f};\n")
+    f.write(f"  static const double L_SYSTEM_DB    = {RF.L_SYSTEM_DB:.1f};\n\n")
+    f.write("  // Sensibilidades objetivo (link budget y disponibilidad RNF-06)\n")
+    f.write(f"  static const double SENS_VIDEO_DBM = {RF.SENS_VIDEO_DBM:.1f};\n")
+    f.write(f"  static const double SENS_BORDE_DBM = {RF.SENS_BORDE_DBM:.1f};\n")
     f.write("} // namespace rf\n#endif\n")
 
 print(f"[OK] {os.path.abspath(out)}")

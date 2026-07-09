@@ -65,3 +65,10 @@ BACKBONE = {
 # L_system: cables, conectores, margen de instalación. Con Cardinal + HELI-40
 # el valor de referencia usado en el modelo two-slope fue ~9.4 dB.
 L_SYSTEM_DB = 9.4
+
+# ---------------- SENSIBILIDADES OBJETIVO (802.11ac 2x2 40 MHz) ----------------
+# Umbrales de diseño usados en el link budget y en la disponibilidad del enlace
+# (RNF-06). No son un valor arbitrario: corresponden a las tasas PHY objetivo
+# de la tesis para vídeo (holgura sobre 40 Mbps) y para el borde de celda.
+SENS_VIDEO_DBM = -68.0   # 300 Mbps — soporta vídeo 40 Mbps con holgura
+SENS_BORDE_DBM = -82.0   # 54 Mbps — enlace usable en el borde de celda

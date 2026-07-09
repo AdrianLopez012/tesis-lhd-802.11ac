@@ -123,6 +123,14 @@ public:
   void SetNlosEnabled (bool e) { m_nlosEnabled = e; }
   void SetShadowingEnabled (bool e) { m_shadowEnabled = e; }
   void SetSeed (uint32_t s) { m_seed = s; }
+  // Acceso de solo lectura a los parámetros vigentes del modelo, para que otros
+  // puntos del programa (p.ej. PosLog) calculen el mismo path-loss sin duplicar
+  // constantes hardcodeadas que podrían desincronizarse si estos atributos cambian.
+  double GetExpLos () const { return m_expLOS; }
+  double GetExpNlos () const { return m_expNLOS; }
+  double GetFreqHz () const { return m_freq; }
+  double GetDbp () const { return m_dbp; }
+  double GetSystemLossDb () const { return m_systemLossDb; }
 private:
   double DoCalcRxPower (double txPow, Ptr<MobilityModel> a, Ptr<MobilityModel> b) const override
   {
@@ -274,6 +282,7 @@ static std::map<std::string,std::string> g_macToId;
 static Ptr<WaypointMobilityModel> g_lhdMob;
 struct ApInfo { double x,y; std::string id; double ptdbm, gtdbi; };
 static std::vector<ApInfo> g_aps;
+static Ptr<TunnelPropagationLossModel> g_loss;   // para RSSI coherente en PosLog
 
 static std::string MacToString (Mac48Address a){ std::ostringstream o; o<<a; return o.str (); }
 
@@ -284,7 +293,9 @@ static std::vector<double> g_hoDur;       // duraciones de handover (ms)
 static uint32_t g_assocCount = 0;
 // para disponibilidad (RNF-06): muestras de RSSI por segundo
 static uint32_t g_rssiTotal = 0, g_rssiOk = 0;
-static const double RSSI_USABLE_DBM = -82.0;   // umbral de enlace usable (54 Mbps)
+// Umbral de enlace usable (54 Mbps de borde de celda): mismo valor que el link
+// budget (rf::SENS_BORDE_DBM), NO un número elegido ad-hoc para este archivo.
+static const double RSSI_USABLE_DBM = rf::SENS_BORDE_DBM;
 // para reportar la tasa PHY (MCS) operativa observada en el enlace del LHD
 static double g_phyRateSum = 0.0; static uint32_t g_phyRateN = 0;
 static double g_phyRateMin = 1e12, g_phyRateMax = 0.0;
@@ -321,19 +332,23 @@ void OnDeAssoc (Mac48Address a)
     g_assocLog<<std::fixed<<std::setprecision(2)<<t<<",deassoc,"<<id<<","<<p.x<<","<<p.y<<",0\n"; }
 }
 
-// RSSI estimado del mejor AP (para el pos_log) — coherente con DoCalcRxPower
+// RSSI estimado del mejor AP (para el pos_log) — usa los MISMOS parámetros que
+// DoCalcRxPower (leídos de g_loss) en vez de duplicar constantes, para que no
+// puedan desincronizarse si el modelo de propagación cambia de atributos.
 static void PosLog ()
 {
   double t=Simulator::Now().GetSeconds();
   Vector p=g_lhdMob->GetPosition();
   double best=-999; std::string bid="?";
-  double lam=3.0e8/5.0e9, plD0=20.0*std::log10(4.0*M_PI/lam);
+  double expLos=g_loss->GetExpLos(), expNlos=g_loss->GetExpNlos();
+  double freq=g_loss->GetFreqHz(), dbp=g_loss->GetDbp(), sysLoss=g_loss->GetSystemLossDb();
+  double lam=3.0e8/freq, plD0=20.0*std::log10(4.0*M_PI/lam);
   for(const auto &ap:g_aps){
     double d=RouteDistance(p.x,p.y,ap.x,ap.y); if(d<1)d=1;
-    double pl = d<40.0 ? plD0+10*1.9*std::log10(d)
-                       : plD0+10*1.9*std::log10(40.0)+10*3.4*std::log10(d/40.0);
+    double pl = d<dbp ? plD0+10*expLos*std::log10(d)
+                      : plD0+10*expLos*std::log10(dbp)+10*expNlos*std::log10(d/dbp);
     pl += NLOS_PENAL_DB*CrucesNlos(p.x,ap.x);
-    double rssi=ap.ptdbm+ap.gtdbi+rf::LHD_GR_DBI-pl-rf::L_SYSTEM_DB;   // Gr LHD (HELI-40)
+    double rssi=ap.ptdbm+ap.gtdbi+rf::LHD_GR_DBI-pl-sysLoss;   // Gr LHD (HELI-40)
     if(rssi>best){best=rssi;bid=ap.id;}
   }
   g_posLog<<std::fixed<<std::setprecision(2)<<t<<","<<p.x<<","<<p.y<<","<<bid<<","<<best<<"\n";
@@ -426,6 +441,7 @@ int main (int argc, char *argv[])
   // Sincroniza la frecuencia y las pérdidas de sistema con la fuente única (rf::)
   loss->SetAttribute("Frequency",  DoubleValue(rf::FREQ_HZ));
   loss->SetAttribute("SystemLossDb",DoubleValue(rf::L_SYSTEM_DB));
+  g_loss = loss;   // PosLog usa estos mismos parámetros (evita duplicar constantes)
   Ptr<YansWifiChannel> chan = CreateObject<YansWifiChannel>();
   chan->SetPropagationDelayModel(CreateObject<ConstantSpeedPropagationDelayModel>());
   chan->SetPropagationLossModel(loss);
@@ -646,9 +662,14 @@ int main (int argc, char *argv[])
   }
 
   // ── RTT del lazo de control (RNF: RTT<=40ms, P95<=40ms, P99<=60ms) ──
-  // El lazo de teleoperación cierra: comando (control->LHD) + respuesta/telemetría
-  // (LHD->control). RTT ~= OWD_comando + OWD_telemetria; el P95 se acota de forma
-  // conservadora sumando los P95 de ambos sentidos.
+  // NOTA METODOLÓGICA: esto NO es un RTT medido sobre un mismo paquete ida-vuelta
+  // (comando y telemetría son flujos UDP independientes, no correlacionados por
+  // secuencia). Es una COTA ANALÍTICA CONSERVADORA del lazo de control: se asume
+  // que el operador cierra el lazo con el par (comando bajada + telemetría subida)
+  // más próximo en el tiempo, por lo que RTT ~= OWD_comando + OWD_telemetria acota
+  // por arriba el retardo real de ida-vuelta (que en la práctica puede ser menor,
+  // al no requerir esperar la respuesta específica a cada comando). El P95 se
+  // acota de forma igualmente conservadora sumando los P95 de ambos sentidos.
   if(owdCmd>=0 && owdTel>=0){
     double rtt=owdCmd+owdTel;
     double rttP95=(p95Cmd>=0&&p95Tel>=0)?(p95Cmd+p95Tel):rtt;
@@ -664,7 +685,9 @@ int main (int argc, char *argv[])
 
   // ── Disponibilidad del enlace (RNF-06: >=99.9%) ──
   // % del tiempo de operación con RSSI del mejor AP por encima del umbral usable
-  // (-82 dBm) — es decir, con enlace radioeléctrico apto para el servicio.
+  // (rf::SENS_BORDE_DBM = -82 dBm, 54 Mbps) — el mismo umbral de borde de celda
+  // usado en el link budget (graficas_simulacion/link_budget.py), no un valor
+  // aparte elegido solo para esta métrica.
   if(g_rssiTotal>0){
     double disp=100.0*(double)g_rssiOk/(double)g_rssiTotal;
     bool dispOk=(disp>=99.9);

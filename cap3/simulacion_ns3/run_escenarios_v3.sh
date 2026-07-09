@@ -1,10 +1,13 @@
 #!/bin/bash
 # ============================================================================
-# Batería de escenarios v3-REAL — NV1640 (PARALELIZADA)
+# Batería de escenarios v3-REAL — NV1640 (EN SERIE)
 # ============================================================================
-# Corre el conjunto de pruebas del capítulo de resultados EN PARALELO
-# (aprovecha los núcleos de la máquina). Cada simulación es independiente
-# (semilla propia, ficheros de salida propios), por lo que es seguro paralelizar.
+# Corre el conjunto de pruebas del capítulo de resultados EN SERIE. Aunque cada
+# simulación es independiente (semilla propia, ficheros de salida propios), en
+# este entorno WSL la ejecución en paralelo (binario directo o varios
+# `./ns3 run` a la vez) SE CUELGA por contención del directorio de build de
+# ns-3. NO paralelizar: la batería completa en serie tarda ~30-35 min pero es
+# 100% fiable y reproducible.
 #
 #   1. principal  — 10 semillas (media +/- IC) del escenario de operación
 #   2. baseline   — LHD estático (referencia sin movilidad)

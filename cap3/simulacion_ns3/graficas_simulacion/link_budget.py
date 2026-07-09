@@ -31,9 +31,9 @@ PL_D0 = 20 * np.log10(4 * np.pi / LAMBDA)     # pérdida de referencia a 1 m
 L_SYS = RF.L_SYSTEM_DB                          # 9.4 dB
 GR_LHD = RF.LHD_ANTENA["gain_dbic"]            # 4.8 dBi (HELI-40)
 
-# sensibilidades objetivo (802.11ac 2x2 40 MHz, de la tesis)
-SENS_VIDEO = -68.0   # 300 Mbps (soporta vídeo 40 Mbps con holgura)
-SENS_BORDE = -82.0   # 54 Mbps (enlace de borde de celda)
+# sensibilidades objetivo (802.11ac 2x2 40 MHz, fuente única: parametros_rf.py)
+SENS_VIDEO = RF.SENS_VIDEO_DBM   # 300 Mbps (soporta vídeo 40 Mbps con holgura)
+SENS_BORDE = RF.SENS_BORDE_DBM   # 54 Mbps (enlace de borde de celda; = umbral RNF-06)
 
 # distancia de diseño = radio de cobertura por AP (de la geometría)
 spec2 = importlib.util.spec_from_file_location("d", os.path.join(HERE, "mapa_nv1640_datos.py"))

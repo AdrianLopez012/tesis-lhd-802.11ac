@@ -23,5 +23,9 @@ namespace rf {
 
   // Perdidas de sistema (cables/conectores/margen)
   static const double L_SYSTEM_DB    = 9.4;
+
+  // Sensibilidades objetivo (link budget y disponibilidad RNF-06)
+  static const double SENS_VIDEO_DBM = -68.0;
+  static const double SENS_BORDE_DBM = -82.0;
 } // namespace rf
 #endif
