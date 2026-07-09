@@ -177,5 +177,6 @@ static const std::vector<WP> RECORRIDO = {
   {196.730,26.00,160.80},
 };
 static const double CICLO_DUR = 196.730; // duración de un ciclo (s)
+static const double SPEED_BASE = 2.220;      // m/s con que se generaron los tiempos
 } // namespace rec
 #endif

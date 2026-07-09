@@ -146,6 +146,7 @@ with open(out,"w",encoding="utf-8") as f:
         f.write(f"  {{{tt:.3f},{x:.2f},{y:.2f}}},\n")
     f.write("};\n")
     f.write(f"static const double CICLO_DUR = {wps[-1][0]:.3f}; // duración de un ciclo (s)\n")
+    f.write(f"static const double SPEED_BASE = {SPEED:.3f};      // m/s con que se generaron los tiempos\n")
     f.write("} // namespace rec\n#endif\n")
 print(f"[OK] {os.path.abspath(out)}")
 print(f"waypoints: {len(wps)} | duración ciclo: {wps[-1][0]:.1f}s")

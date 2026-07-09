@@ -302,20 +302,24 @@ static void BuildRoute (Ptr<WaypointMobilityModel> mob, double speed, double sim
 {
   // Usa el recorrido REAL del GIF (recorrido_nv1640.h): grafo Dijkstra + maniobras
   // de encarar/rodear/reversa/carga/descarga. Se repite el ciclo hasta simTime.
-  (void)speed;
+  // Los tiempos del header se generaron a rec::SPEED_BASE (2.22 m/s); si se pide otra
+  // velocidad (p.ej. escenario de estrés a 4 m/s), se REESCALAN por factor
+  // SPEED_BASE/speed para que el LHD recorra la misma trayectoria más rápido/lento.
+  double factor = (speed > 0.1) ? (rec::SPEED_BASE / speed) : 1.0;
   const auto &R = rec::RECORRIDO;
+  double cicloDur = rec::CICLO_DUR * factor;
   double tBase = 0.0;
   int ciclo = 0;
   while (tBase < simTime + 30.0)
   {
     for (size_t i = 0; i < R.size (); i++)
     {
-      double t = tBase + R[i].t;
+      double t = tBase + R[i].t * factor;
       // evita tiempo duplicado en el empalme entre ciclos
       if (ciclo > 0 && i == 0) continue;
       mob->AddWaypoint (Waypoint (Seconds (t), Vector (R[i].x, R[i].y, HEIGHT_LHD)));
     }
-    tBase += rec::CICLO_DUR + 1.0;   // +1s de separación entre ciclos
+    tBase += cicloDur + 1.0;   // +1s de separación entre ciclos
     ciclo++;
   }
 }
