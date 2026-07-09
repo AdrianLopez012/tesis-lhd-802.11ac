@@ -181,8 +181,14 @@ NS_OBJECT_ENSURE_REGISTERED (TunnelPropagationLossModel);
 
 
 // ============================================================================
-// APLICACIÓN VIDEO CON RETARDO DE CODEC (H.264 encode+decode = 35 ms)
+// APLICACIÓN VIDEO H.264 VBR CON RETARDO DE CODEC (encode+decode = 35 ms)
 // ============================================================================
+// Modelo de vídeo realista de tasa variable (VBR): el flujo se emite por FRAMES
+// a FPS constante (p.ej. 30 fps), pero cada frame tiene tamaño VARIABLE alrededor
+// de la media (los frames I son mayores que los P/B). Cada frame se fragmenta en
+// paquetes de MTU (1400 B) que se envían en ráfaga. Esto reproduce el jitter de
+// codificación real (tamaño de frame variable), a diferencia de un CBR de intervalo
+// fijo que da jitter artificialmente nulo. El bitrate MEDIO se mantiene en m_rate.
 class CodecDelayApp : public Application
 {
 public:
@@ -194,19 +200,50 @@ public:
     return tid;
   }
   void Setup (Ptr<Socket> s, Address a, uint32_t pkt, DataRate r, double codecMs, uint8_t tos)
-  { m_socket=s; m_peer=a; m_pkt=pkt; m_rate=r; m_codec=MilliSeconds(codecMs); m_tos=tos; }
+  { m_socket=s; m_peer=a; m_pkt=pkt; m_rate=r; m_codec=MilliSeconds(codecMs); m_tos=tos;
+    m_fps=30.0;
+    m_frameBytesMean = m_rate.GetBitRate()/8.0/m_fps;   // bytes por frame para el bitrate medio
+    m_var = CreateObject<NormalRandomVariable> ();
+    m_var->SetAttribute("Mean",DoubleValue(1.0));
+    m_var->SetAttribute("Variance",DoubleValue(0.09));  // sigma=0.30 => VBR ±30% (frames I vs P/B)
+  }
 private:
   void StartApplication () override
   { m_running=true; m_socket->Bind(); m_socket->Connect(m_peer); m_socket->SetIpTos(m_tos);
-    m_ev=Simulator::Schedule(m_codec,&CodecDelayApp::Send,this); }
+    m_ev=Simulator::Schedule(m_codec,&CodecDelayApp::SendFrame,this); }
   void StopApplication () override
   { m_running=false; if(m_ev.IsRunning()) Simulator::Cancel(m_ev); if(m_socket) m_socket->Close(); }
-  void Send ()
-  { m_socket->Send(Create<Packet>(m_pkt));
-    if(m_running){ Time next=Seconds(m_pkt*8.0/m_rate.GetBitRate());
-      m_ev=Simulator::Schedule(next,&CodecDelayApp::Send,this);} }
+  void SendFrame ()
+  { // tamaño de este frame (VBR): media * factor acotado a [0.4, 2.2]
+    double f = std::max(0.4, std::min(2.2, m_var->GetValue()));
+    uint32_t frameBytes = (uint32_t)(m_frameBytesMean * f);
+    uint32_t nfull = frameBytes / m_pkt;
+    uint32_t rem   = frameBytes % m_pkt;
+    m_pktsThisFrame = nfull + (rem>0?1:0);
+    if (m_pktsThisFrame==0) m_pktsThisFrame=1;
+    // los paquetes del frame se ESPACIAN dentro del intervalo del frame: el número
+    // de paquetes varía con el tamaño (VBR) => el inter-arrival varía frame a frame,
+    // produciendo jitter realista (medible por FlowMonitor).
+    double frameDur = 1.0/m_fps;
+    m_pktGap = frameDur / (double)m_pktsThisFrame;
+    m_pktIdx = 0; m_curFull = nfull; m_curRem = rem;
+    SendPkt(); }
+  void SendPkt ()
+  { if(!m_running) return;
+    if (m_pktIdx < m_curFull) m_socket->Send(Create<Packet>(m_pkt));
+    else if (m_pktIdx==m_curFull && m_curRem>0) m_socket->Send(Create<Packet>(m_curRem));
+    m_pktIdx++;
+    if (m_pktIdx < m_pktsThisFrame)
+      m_ev=Simulator::Schedule(Seconds(m_pktGap),&CodecDelayApp::SendPkt,this);
+    else
+      m_ev=Simulator::Schedule(Seconds(1.0/m_fps - (m_pktsThisFrame-1)*m_pktGap),
+                               &CodecDelayApp::SendFrame,this); }
   Ptr<Socket> m_socket; Address m_peer; uint32_t m_pkt{1400}; DataRate m_rate;
   Time m_codec; uint8_t m_tos{0}; bool m_running{false}; EventId m_ev;
+  double m_fps{30.0}, m_frameBytesMean{0.0};
+  uint32_t m_pktsThisFrame{0}, m_pktIdx{0}, m_curFull{0}, m_curRem{0};
+  double m_pktGap{0.0};
+  Ptr<NormalRandomVariable> m_var;
 };
 NS_OBJECT_ENSURE_REGISTERED (CodecDelayApp);
 
@@ -248,6 +285,17 @@ static uint32_t g_assocCount = 0;
 // para disponibilidad (RNF-06): muestras de RSSI por segundo
 static uint32_t g_rssiTotal = 0, g_rssiOk = 0;
 static const double RSSI_USABLE_DBM = -82.0;   // umbral de enlace usable (54 Mbps)
+// para reportar la tasa PHY (MCS) operativa observada en el enlace del LHD
+static double g_phyRateSum = 0.0; static uint32_t g_phyRateN = 0;
+static double g_phyRateMin = 1e12, g_phyRateMax = 0.0;
+void OnMonitorRx (Ptr<const Packet>, uint16_t, WifiTxVector txv, MpduInfo, SignalNoiseDbm, uint16_t)
+{
+  double mbps = txv.GetMode().GetDataRate(txv) / 1e6;
+  if (mbps <= 0) return;
+  g_phyRateSum += mbps; g_phyRateN++;
+  if (mbps < g_phyRateMin) g_phyRateMin = mbps;
+  if (mbps > g_phyRateMax) g_phyRateMax = mbps;
+}
 
 void OnAssoc (Mac48Address a)
 {
@@ -375,6 +423,9 @@ int main (int argc, char *argv[])
   // en la clase (atributos SigmaLos/SigmaNlos) pero queda desactivado por defecto.
   loss->SetShadowingEnabled(false);
   loss->SetSeed(seed);
+  // Sincroniza la frecuencia y las pérdidas de sistema con la fuente única (rf::)
+  loss->SetAttribute("Frequency",  DoubleValue(rf::FREQ_HZ));
+  loss->SetAttribute("SystemLossDb",DoubleValue(rf::L_SYSTEM_DB));
   Ptr<YansWifiChannel> chan = CreateObject<YansWifiChannel>();
   chan->SetPropagationDelayModel(CreateObject<ConstantSpeedPropagationDelayModel>());
   chan->SetPropagationLossModel(loss);
@@ -420,8 +471,12 @@ int main (int argc, char *argv[])
   // verdad al AP servidor (varios beacons seguidos), evitando el ping-pong entre
   // APs de igual SSID. Emula el roaming L2 del mesh Rajant InstaMesh, que mantiene
   // el enlace (make-before-break) en vez de reasociar por cada beacon marginal.
+  // Escenario "handover": roaming más sensible (menos beacons tolerados) para forzar
+  // traspasos medibles y verificar el RNF-05 (handover<=150ms) de forma explícita.
+  // El resto de escenarios usan roaming estable tipo mesh (make-before-break).
+  uint32_t maxMissed = (scenario.rfind("handover",0)==0) ? 3 : 10;
   Config::Set("/NodeList/"+std::to_string(lhd.Get(0)->GetId())+
-              "/DeviceList/*/Mac/$ns3::StaWifiMac/MaxMissedBeacons",UintegerValue(10));
+              "/DeviceList/*/Mac/$ns3::StaWifiMac/MaxMissedBeacons",UintegerValue(maxMissed));
   Config::Set("/NodeList/"+std::to_string(lhd.Get(0)->GetId())+
               "/DeviceList/*/Mac/$ns3::StaWifiMac/AssocRequestTimeout",TimeValue(MilliSeconds(50)));
 
@@ -473,6 +528,9 @@ int main (int argc, char *argv[])
 
   Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::StaWifiMac/Assoc",MakeCallback(&OnAssoc));
   Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::StaWifiMac/DeAssoc",MakeCallback(&OnDeAssoc));
+  // trace de la tasa PHY (MCS) recibida en el LHD, para reportar el MCS operativo
+  Config::ConnectWithoutContext("/NodeList/"+std::to_string(lhd.Get(0)->GetId())+
+      "/DeviceList/*/$ns3::WifiNetDevice/Phy/MonitorSnifferRx",MakeCallback(&OnMonitorRx));
 
   double tStart=3.0;
 
@@ -517,8 +575,10 @@ int main (int argc, char *argv[])
 
   // ── FlowMonitor ──
   FlowMonitorHelper fmH;
-  fmH.SetMonitorAttribute("DelayBinWidth",DoubleValue(0.001));
-  fmH.SetMonitorAttribute("JitterBinWidth",DoubleValue(0.0005));
+  // bins finos: el enlace va holgado y el jitter/latencia son muy bajos; con bins
+  // gruesos se redondearían artificialmente. 0.05 ms de resolución refleja el valor real.
+  fmH.SetMonitorAttribute("DelayBinWidth",DoubleValue(0.00005));
+  fmH.SetMonitorAttribute("JitterBinWidth",DoubleValue(0.00005));
   Ptr<FlowMonitor> fm=fmH.InstallAll();
 
   Simulator::Stop(Seconds(simTime+10));
@@ -534,7 +594,7 @@ int main (int argc, char *argv[])
   std::cout<<"\n===== RESULTADOS v3 REAL ("<<scenario<<") =====\n";
   bool allOk=true;
   // para RTT del lazo de control (comando bajada + telemetría subida)
-  double owdCmd=-1, owdTel=-1, p95Cmd=-1, p95Tel=-1, plrCmd=0, plrTel=0;
+  double owdCmd=-1, owdTel=-1, p95Cmd=-1, p95Tel=-1;
   for(auto &it:stats){
     auto ft=cls->FindFlow(it.first); auto &fs=it.second;
     double txP=fs.txPackets, rxP=fs.rxPackets; if(txP==0) continue;
@@ -542,7 +602,8 @@ int main (int argc, char *argv[])
     double owd=(rxP>0)?fs.delaySum.GetSeconds()/rxP*1000.0:0.0;
     double dur=(fs.timeLastRxPacket-fs.timeFirstTxPacket).GetSeconds();
     double iptput=(dur>0)?fs.rxBytes*8.0/dur/1e6:0.0;
-    auto dv=HistToSamples(fs.delayHistogram,1.0); auto jv=HistToSamples(fs.jitterHistogram,0.5);
+    // ancho de bin en ms (coincide con el DelayBinWidth/JitterBinWidth = 0.05 ms)
+    auto dv=HistToSamples(fs.delayHistogram,0.05); auto jv=HistToSamples(fs.jitterHistogram,0.05);
     double owdP95=Percentile(dv,95.0), jitP95=Percentile(jv,95.0);
     std::string name="Other"; double codecAdd=0; uint32_t pktPay=0;
     if(ft.destinationPort==vidPort){name="Video";codecAdd=codecMs;pktPay=1400;}
@@ -556,8 +617,8 @@ int main (int argc, char *argv[])
              <<" | jitP95="<<jitP95<<"ms | PLR="<<plr<<"% | goodput="<<goodput<<"Mbps | E2E="<<e2e<<"ms\n";
     if(name=="Comandos"){ bool ok=(owd<=20.0)&&(plr<=0.5);
       std::cout<<"   KPI OWD<=20ms & PLR<=0.5%: "<<(ok?"CUMPLE":"NO CUMPLE")<<"\n"; if(!ok)allOk=false;
-      owdCmd=owd; p95Cmd=owdP95; plrCmd=plr; }
-    if(name=="Telemetria"){ owdTel=owd; p95Tel=owdP95; plrTel=plr; }
+      owdCmd=owd; p95Cmd=owdP95; }
+    if(name=="Telemetria"){ owdTel=owd; p95Tel=owdP95; }
     if(name=="Video"){ bool ok=(e2e<=150.0)&&(jitP95<=10.0)&&(goodput>=38.0)&&(plr<=1.0);
       std::cout<<"   KPI E2E<=150 jitP95<=10 goodput>=38 PLR<=1%: "<<(ok?"CUMPLE":"NO CUMPLE")<<"\n"; if(!ok)allOk=false; }
     out<<it.first<<","<<name<<","<<(uint32_t)txP<<","<<(uint32_t)rxP<<","<<pdr<<","<<plr<<","
@@ -616,6 +677,18 @@ int main (int argc, char *argv[])
     df<<"metric,value\ndisponibilidad_pct,"<<disp<<"\nmuestras_ok,"<<g_rssiOk
       <<"\nmuestras_total,"<<g_rssiTotal<<"\numbral_rssi_dbm,"<<RSSI_USABLE_DBM
       <<"\numbral_disp,99.9\n"; df.close();
+  }
+
+  // ── Tasa PHY (MCS) operativa observada en el enlace del LHD ──
+  // Informativo: refleja la modulación/codificación que negocia el gestor de tasa
+  // (MinstrelHt) sobre 802.11ac 2x2 40 MHz durante el recorrido.
+  if(g_phyRateN>0){
+    double phyMean=g_phyRateSum/g_phyRateN;
+    std::cout<<"\n[PHY] tasa observada: media="<<std::fixed<<std::setprecision(0)<<phyMean
+             <<" Mbps | min="<<g_phyRateMin<<" | max="<<g_phyRateMax<<" (802.11ac 2x2 40MHz)\n";
+    std::ofstream pf("results/"+scenario+"_v3_phy_mcs.csv");
+    pf<<"metric,value_mbps\nmedia,"<<phyMean<<"\nmin,"<<g_phyRateMin
+      <<"\nmax,"<<g_phyRateMax<<"\nmuestras,"<<g_phyRateN<<"\n"; pf.close();
   }
 
   fm->SerializeToXmlFile("results/"+scenario+"_v3_flowmon.xml",true,true);

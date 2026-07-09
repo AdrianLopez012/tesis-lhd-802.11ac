@@ -41,6 +41,7 @@ for s in $(seq 1 10); do run "principal_s${s}" --seed=${s}; done
 run baseline
 run estres_video --videoRate=50.0
 run estres_lhd --lhdSpeed=4.0
+run handover                       # roaming sensible => handovers medibles (RNF-05)
 
 t1=$(date +%s)
 echo ""

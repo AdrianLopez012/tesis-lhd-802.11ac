@@ -1,6 +1,6 @@
 metric,value_ms
-rtt_media,4.22547
-rtt_p95,11
-owd_cmd,2.18677
-owd_tel,2.0387
+rtt_media,6.01896
+rtt_p95,23.8525
+owd_cmd,3.10449
+owd_tel,2.91448
 umbral,40
