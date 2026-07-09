@@ -24,6 +24,11 @@ from matplotlib.lines import Line2D
 HERE = os.path.dirname(os.path.abspath(__file__))
 RES  = os.path.join(HERE, "..", "results")
 
+# Escenario de operación canónico: corrida de la batería vigente (principal_s1,
+# generada con el código actual). Antes se usaba "mobility_v3", una corrida
+# anterior desincronizada del resto de la batería (distinta versión del .cc).
+OP_STEM = "principal_s1_v3"
+
 # ---------- estilo sobrio ----------
 plt.rcParams.update({
     "font.family": "DejaVu Sans", "font.size": 10,
@@ -63,8 +68,8 @@ def cumple(v,thr,op): return (v<=thr) if op=="<=" else (v>=thr)
 # 1) KPIs MULTI-SEMILLA (media, desv, IC95)
 # ============================================================
 seed_files = sorted(glob.glob(os.path.join(RES,"principal_s*_v3_flow_stats.csv")))
-if not seed_files:  # respaldo: usar la corrida única mobility_v3
-    seed_files = [os.path.join(RES,"mobility_v3_flow_stats.csv")]
+if not seed_files:  # respaldo: usar una corrida de operación de la batería
+    seed_files = [os.path.join(RES,OP_STEM+"_flow_stats.csv")]
 runs = [load_flow(p) for p in seed_files if os.path.exists(p)]
 n = len(runs)
 
@@ -136,13 +141,13 @@ print(f"[OK] {out1}  (n={n} semillas)")
 # ============================================================
 # 2) COMPARACIÓN DE ESCENARIOS
 # ============================================================
-ESC = [("Operación","mobility_v3_flow_stats.csv"),
+ESC = [("Operación",OP_STEM+"_flow_stats.csv"),
        ("Baseline\n(estático)","baseline_v3_flow_stats.csv"),
        ("Estrés vídeo\n(50 Mbps)","estres_video_v3_flow_stats.csv"),
        ("Estrés LHD\n(4 m/s)","estres_lhd_v3_flow_stats.csv")]
 esc_data = [(nm,load_flow(os.path.join(RES,fn))) for nm,fn in ESC if os.path.exists(os.path.join(RES,fn))]
 if not esc_data:
-    esc_data = [("Operación", load_flow(os.path.join(RES,"mobility_v3_flow_stats.csv")))]
+    esc_data = [("Operación", load_flow(os.path.join(RES,OP_STEM+"_flow_stats.csv")))]
 
 met = [("Video","e2e_ms","Latencia vídeo E2E (ms)",150.0,"<="),
        ("Video","goodput_mbps","Throughput vídeo (Mbps)",38.0,">="),
@@ -185,8 +190,7 @@ def load_assoc(path):
 # Agrega los handovers de TODAS las corridas del escenario de operación
 # (las 10 semillas + la corrida única) para una distribución representativa.
 ho=[]
-for p in glob.glob(os.path.join(RES,"principal_s*_v3_assoc_log.csv")) + \
-         [os.path.join(RES,"mobility_v3_assoc_log.csv")]:
+for p in glob.glob(os.path.join(RES,"principal_s*_v3_assoc_log.csv")):
     ho += load_assoc(p)
 # nº de traspasos de AP a nivel de señal (serving_ap) en el escenario de operación
 def contar_cambios_ap(path):
@@ -198,7 +202,7 @@ def contar_cambios_ap(path):
             if prev is not None and a!=prev: n+=1
             prev=a
     return n
-cambios = contar_cambios_ap(os.path.join(RES,"mobility_v3_pos_log.csv"))
+cambios = contar_cambios_ap(os.path.join(RES,OP_STEM+"_pos_log.csv"))
 
 fig,ax=plt.subplots(figsize=(11,6.2)); ax.axis("off")
 ax.set_title("Comportamiento del roaming durante la teleoperación (RNF-05: handover ≤ 150 ms)",
@@ -235,7 +239,7 @@ def load_pos(path):
             T.append(float(r["time_s"]));X.append(float(r["x"]));Y.append(float(r["y"]))
             AP.append(r["serving_ap"]);R.append(float(r["rssi_dbm"]))
     return np.array(T),np.array(X),np.array(Y),AP,np.array(R)
-pos_path=os.path.join(RES,"mobility_v3_pos_log.csv")
+pos_path=os.path.join(RES,OP_STEM+"_pos_log.csv")
 if os.path.exists(pos_path):
     T,X,Y,AP,R=load_pos(pos_path)
     fig,(ax1,ax2)=plt.subplots(1,2,figsize=(15,6.2),gridspec_kw={"width_ratios":[1.3,1]})

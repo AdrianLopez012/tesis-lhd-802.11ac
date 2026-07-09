@@ -29,7 +29,7 @@ def load_flow(p):
 # media de las 10 semillas del escenario de operación
 seed_files = sorted(glob.glob(os.path.join(RES, "principal_s*_v3_flow_stats.csv")))
 if not seed_files:
-    seed_files = [os.path.join(RES, "mobility_v3_flow_stats.csv")]
+    seed_files = [os.path.join(RES, "principal_s1_v3_flow_stats.csv")]
 runs = [load_flow(p) for p in seed_files]
 def media(grp, key):
     return float(np.mean([float(r[grp][key]) for r in runs if grp in r]))

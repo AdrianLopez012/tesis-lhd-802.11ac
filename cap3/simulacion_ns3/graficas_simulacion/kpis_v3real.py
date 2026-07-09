@@ -1,8 +1,9 @@
 """
 Gráficas de KPIs — Simulación v3-REAL (geometría real NV1640 + recorrido real)
 ==============================================================================
-Lee los resultados de la simulación NS-3 v3 (mobility_v3_*) y genera un panel
-profesional de KPIs para el capítulo de resultados de la tesis:
+Lee los resultados de la simulación NS-3 v3 (corrida de operación de la batería
+vigente, principal_s1_*) y genera un panel profesional de KPIs para el capítulo
+de resultados de la tesis:
 
   Figura A (kpi_v3_panel.png) — 4 paneles:
     1. RSSI vs tiempo con el AP servidor coloreado (roaming real por la zona)
@@ -48,8 +49,13 @@ def load_pos_log(path):
             ap.append(r["serving_ap"]); rssi.append(float(r["rssi_dbm"]))
     return (np.array(t), np.array(x), np.array(y), ap, np.array(rssi))
 
-flow = load_flow_stats(os.path.join(RES, "mobility_v3_flow_stats.csv"))
-T, X, Y, AP, RSSI = load_pos_log(os.path.join(RES, "mobility_v3_pos_log.csv"))
+# Escenario de operación canónico: se usa una corrida de la batería vigente
+# (principal_s1, generada con el código actual) para que TODAS las figuras
+# provengan de la misma versión del simulador. Antes se usaba "mobility_v3",
+# una corrida anterior que quedó desincronizada del resto de la batería.
+OP = os.path.join(RES, "principal_s1_v3")
+flow = load_flow_stats(OP + "_flow_stats.csv")
+T, X, Y, AP, RSSI = load_pos_log(OP + "_pos_log.csv")
 
 # ---------------- umbrales de la tesis (RNF) ----------------
 # Comandos: OWD<=20ms, PLR<=0.5% (movilidad) | Video: E2E<=150ms, jitP95<=10ms,
