@@ -133,13 +133,19 @@ El Teniente (block caving), NO una galería recta. Componentes:
 | Handover | ≤ 150 ms (RNF-05) |
 | Disponibilidad | ≥ 99.9% (RNF-06) |
 
-### RESULTADO ACTUAL (10 semillas, escenario de operación) — TODOS CUMPLEN
+### RESULTADO ACTUAL (10 semillas, escenario de operación, batería 2026-07-09) — TODOS CUMPLEN
 - OWD comandos: **3.04 ± 0.26 ms** · PLR comandos: **0.06%**
-- Vídeo E2E: **35.89 ± 0.28 ms** · jitter P95: **0.28 ms** · throughput: **40.29 Mbps** · PLR: **0.01%**
+- Vídeo E2E: **35.89 ± 0.28 ms** · jitter P95: **0.28 ms** · goodput: **40.12 ± 0.07 Mbps**
+  (payload EXACTO, sin cabeceras; una versión previa reportaba 40.29 con fórmula inflada) · PLR: **0.01%**
 - Telemetría OWD: **3.08 ms** · PLR: **0.14%**
 - **RTT: 6.12 ± 0.47 ms** · **Disponibilidad: 100%**
-- **Handover: 0.9 ms** (escenario dedicado) ≪ 150 ms
+- **Handover: 0.88 ms** (escenario dedicado, multi-semilla) ≪ 150 ms
 - **10/10 semillas cumplen los 8 indicadores.**
+- **NOTA (estrés vídeo 50 Mbps):** desde el modelo VBR realista este escenario CUMPLE
+  los KPIs; la presión se manifiesta en LATENCIA de comandos (OWD ×2.3 = 6.8 ms,
+  P95 32 ms), no en pérdidas. NO citar el antiguo "PLR 1.04%" (era del CBR).
+- Esquema del pos_log: `time_s,x,y,best_ap,rssi_dbm,assoc_ap,rssi_assoc_dbm`
+  (best = mejor señal/cobertura; assoc = AP realmente asociado).
 
 ---
 
@@ -149,9 +155,8 @@ El Teniente (block caving), NO una galería recta. Componentes:
 tesis_proyecto/
 ├── TRASPASO_CONTEXTO.md          # este archivo
 ├── editor_mapa_nv1640.html       # editor visual interactivo de la geometría
-├── mapa_cobertura_nv1640.html    # visor de cobertura
-├── dashboard.html
-├── historico/                    # material antiguo a nivel raíz
+├── historico/                    # material antiguo a nivel raíz (incluye dashboard.html
+│                                 #   y mapa_cobertura_nv1640.html, ambos de la era v9)
 └── cap3/
     ├── config/  modelado/  raytracing/
     ├── tamograph/               # reporte TamoGraph real (PDF + imágenes)
@@ -264,6 +269,13 @@ e340136 FASE 2 — contenido técnico: link budget, comparación de KPIs y diagr
 599b05e Mejoras: RTT + disponibilidad (RNF completos), frecuencia 5GHz, params RF sincronizados
 6ad7852 Fix: el escenario de estrés LHD ahora sí aplica la velocidad (bug de BuildRoute)
 9ed0051 Auditoría a fondo: vídeo VBR, MCS, jitter fino, escenario handover, sincronización
+459ee01 Documento de traspaso de contexto completo (handoff)
+a8e5dc3 Auditoría 3ª ronda: elimina duplicación de parámetros y aclara supuestos
+af57375 Auditoría (Opus): las figuras usaban una corrida obsoleta; unifica a la batería vigente
+55cb27f Auditoría final (Fable): 5 hallazgos resueltos (goodput exacto, pos_log honesto,
+        radio de diseño justificado, supuesto físico documentado, sin textos hardcodeados)
+c9298b1 Batería completa con el código auditado (F1-F5): 14/14 escenarios, TODOS cumplen
+1fdeffb Limpieza: elimina archivos espurios de corridas antiguas colados en el commit anterior
 ```
 
 ---

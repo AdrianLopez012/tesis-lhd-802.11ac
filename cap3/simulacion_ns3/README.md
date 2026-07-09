@@ -81,11 +81,22 @@ cd ~/ns-allinone-3.40/ns-3.40
 
 **Parámetros (CommandLine):** `--scenario`, `--simTime`, `--lhdSpeed`, `--videoRate`, `--seed`.
 
-### 3. Batería completa de escenarios (10 semillas + baseline + estrés)
+### 3. Batería completa de escenarios (10 semillas + baseline + estrés + handover)
 ```bash
-bash run_escenarios_v3.sh          # deja resultados en ~/ns-3.40/results/*_v3_*
+bash run_escenarios_v3.sh          # deja resultados en ~/ns-3.40/results/
 ```
-Copiar los `*_v3_*` a `results/` del repo.
+- **Duración real: ~3-3.5 horas** (12596 s medidos el 2026-07-09), EN SERIE
+  (paralelizar cuelga el build de ns-3 en este WSL).
+- Lanzamiento en background desde Windows: `setsid nohup bash run_escenarios_v3.sh
+  > ~/bateria_v3.log 2>&1 < /dev/null &` y VERIFICAR con `pgrep` que el proceso vive.
+- **Copiar al repo SOLO los escenarios vigentes** (el results/ de WSL puede acumular
+  corridas antiguas; NO usar el comodín `*_v3_*` a ciegas):
+  `principal_s1..s10`, `baseline`, `estres_video`, `estres_lhd`, `handover`.
+
+**Esquema del pos_log** (`<escenario>_v3_pos_log.csv`):
+`time_s,x,y,best_ap,rssi_dbm,assoc_ap,rssi_assoc_dbm` — `best_ap`/`rssi_dbm` es el AP
+de mejor señal en esa posición (cobertura; base del RNF-06), `assoc_ap`/`rssi_assoc_dbm`
+es el AP al que el LHD está asociado realmente (con roaming estable pueden diferir).
 
 ### 4. Generar las figuras
 ```bash
