@@ -192,6 +192,12 @@ def load_assoc(path):
 ho=[]; n_runs=0
 for p in glob.glob(os.path.join(RES,"principal_s*_v3_assoc_log.csv")):
     ho += load_assoc(p); n_runs += 1
+# Escenario DEDICADO de handover (roaming sensible, multi-semilla): fuerza
+# traspasos duros medibles para verificar el RNF-05 con respaldo estadístico
+# (n eventos >> 1, varias semillas independientes).
+ho_ded=[]; n_ded=0
+for p in glob.glob(os.path.join(RES,"handover*_v3_assoc_log.csv")):
+    ho_ded += load_assoc(p); n_ded += 1
 # nº de traspasos de MEJOR señal (best_ap) en el escenario de operación — es el
 # cambio del AP de mayor RSSI a lo largo de la ruta, no la reasociación real del
 # STA (esa se mide con el assoc_log). Con roaming estable el STA cambia menos.
@@ -209,30 +215,35 @@ cambios = contar_cambios_ap(os.path.join(RES,OP_STEM+"_pos_log.csv"))
 fig,ax=plt.subplots(figsize=(11,6.2)); ax.axis("off")
 ax.set_title("Comportamiento del roaming durante la teleoperación (RNF-05: handover ≤ 150 ms)",
              fontsize=12.5, pad=18)
-# barra visual comparando el peor handover observado vs el requisito
+# barra visual: peor handover del escenario DEDICADO (evidencia principal RNF-05)
 axb = fig.add_axes([0.12,0.30,0.76,0.16])
-peor = max(ho) if ho else 0.0
+peor_op  = max(ho) if ho else 0.0          # peor en operación (roaming estable)
+peor_ded = max(ho_ded) if ho_ded else 0.0  # peor en escenario dedicado
+peor = max(peor_op, peor_ded)
+media_ded = (sum(ho_ded)/len(ho_ded)) if ho_ded else 0.0
 axb.barh([0],[150],color="#EEE",edgecolor="#BBB",height=0.5,zorder=1)
 axb.barh([0],[max(peor,1.5)],color=C_OK,edgecolor="#2f5c43",height=0.5,zorder=2)
 axb.axvline(150,color=C_BAD,ls="--",lw=1.6)
 axb.annotate("requisito 150 ms",(150,0.42),color=C_BAD,fontsize=9,ha="right")
-axb.annotate(f"peor handover observado: {peor:.1f} ms",(max(peor,1.5)+3,0),
+axb.annotate(f"peor handover observado: {peor:.2f} ms",(max(peor,1.5)+3,0),
              va="center",fontsize=9.5,color="#2f5c43",weight="bold")
 axb.set_xlim(0,165); axb.set_ylim(-0.5,0.7); axb.set_yticks([])
 axb.set_xlabel("Tiempo de handover (ms)");
 for s in ["top","right","left"]: axb.spines[s].set_visible(False)
 # texto de conclusión
-reas = (f"solo se registró 1 reasociación con corte medible ({peor:.1f} ms)" if len(ho)==1
-        else f"se registraron {len(ho)} reasociaciones con corte medible (peor: {peor:.1f} ms)" if ho
+reas = (f"solo se registró 1 reasociación con corte medible ({peor_op:.1f} ms)" if len(ho)==1
+        else f"se registraron {len(ho)} reasociaciones con corte medible (peor: {peor_op:.1f} ms)" if ho
         else "no se registró ninguna reasociación con corte medible")
 txt=("El diseño emplea roaming L2 tipo mesh (Rajant InstaMesh, make-before-break): el enlace se\n"
-     f"mantiene durante el desplazamiento. A lo largo de la ruta el mejor AP cambia {cambios} veces\n"
-     f"(traspasos de mejor señal), y {reas},\n"
-     f"muy por debajo del requisito de 150 ms. Resultado agregado de {n_runs} corridas.")
-fig.text(0.5,0.14,txt,ha="center",va="center",fontsize=10.5,color="#333")
+     f"mantiene durante el desplazamiento. En operación ({n_runs} corridas), el mejor AP cambia\n"
+     f"{cambios} veces y {reas}.\n"
+     f"En el escenario dedicado de handover ({n_ded} semillas, roaming sensible) se midieron\n"
+     f"{len(ho_ded)} traspasos duros: media {media_ded:.2f} ms, peor caso {peor_ded:.2f} ms — "
+     f"muy por debajo del requisito de 150 ms.")
+fig.text(0.5,0.13,txt,ha="center",va="center",fontsize=10,color="#333")
 out3=os.path.join(HERE,"resultados_handover.png")
 plt.savefig(out3,dpi=155,bbox_inches="tight"); plt.close()
-print(f"[OK] {out3}  ({len(ho)} handovers medibles, {cambios} cambios de AP)")
+print(f"[OK] {out3}  (operacion: {len(ho)} | dedicado: {len(ho_ded)} eventos en {n_ded} semillas)")
 
 # ============================================================
 # 4) COBERTURA / RSSI A LO LARGO DEL RECORRIDO

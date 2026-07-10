@@ -1,0 +1,6 @@
+metric,value_ms
+eventos,1
+media,0.911985
+p95,0.911985
+max,0.911985
+umbral,150
