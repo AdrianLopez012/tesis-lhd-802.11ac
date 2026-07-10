@@ -66,6 +66,18 @@ BACKBONE = {
 # el valor de referencia usado en el modelo two-slope fue ~9.4 dB.
 L_SYSTEM_DB = 9.4
 
+# ---------------- MODELO DE PROPAGACIÓN TWO-SLOPE (calibrado TamoGraph) ----------------
+# FUENTE ÚNICA de los parámetros del modelo: el .cc (via parametros_rf.h) y TODOS
+# los scripts de figuras (mapa de cobertura, link budget, contraste) deben leer
+# de aquí — NUNCA hardcodear estos números en otro archivo, para que la fórmula
+# sea EXACTAMENTE la misma en la simulación y en todas las figuras de la tesis.
+PROPAGACION = {
+    "n1":            1.9,    # exponente LOS (antes del breakpoint)
+    "n2":            3.4,    # exponente tras el breakpoint (LOS lejano y NLOS)
+    "d_bp_m":        40.0,   # distancia de breakpoint (m)
+    "nlos_penal_db": 10.0,   # dB extra por cada galería cruzada (esquina/difracción)
+}
+
 # ---------------- SENSIBILIDADES OBJETIVO (802.11ac 2x2 40 MHz) ----------------
 # Umbrales de diseño usados en el link budget y en la disponibilidad del enlace
 # (RNF-06). No son un valor arbitrario: corresponden a las tasas PHY objetivo

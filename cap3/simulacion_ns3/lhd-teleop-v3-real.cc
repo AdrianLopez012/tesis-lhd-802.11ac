@@ -104,7 +104,7 @@ static int CrucesNlos (double x1, double x2)
 // ============================================================================
 // MODELO DE PROPAGACIÓN EN TÚNEL TWO-SLOPE (calibrado TamoGraph)
 // ============================================================================
-static const double NLOS_PENAL_DB = 10.0;   // dB por cada galería cruzada
+static const double NLOS_PENAL_DB = rf::PROP_NLOS_DB;   // dB por galería cruzada (fuente única)
 static const double DCORR = 20.0;           // distancia de correlación del shadowing (m)
 
 class TunnelPropagationLossModel : public PropagationLossModel
@@ -458,9 +458,14 @@ int main (int argc, char *argv[])
   // en la clase (atributos SigmaLos/SigmaNlos) pero queda desactivado por defecto.
   loss->SetShadowingEnabled(false);
   loss->SetSeed(seed);
-  // Sincroniza la frecuencia y las pérdidas de sistema con la fuente única (rf::)
+  // Sincroniza TODOS los parámetros del modelo con la fuente única (rf::):
+  // frecuencia, pérdidas de sistema y two-slope (n1, n2, d_bp). Los defaults de
+  // los atributos coinciden, pero la fuente autoritativa es parametros_rf.py.
   loss->SetAttribute("Frequency",  DoubleValue(rf::FREQ_HZ));
   loss->SetAttribute("SystemLossDb",DoubleValue(rf::L_SYSTEM_DB));
+  loss->SetAttribute("ExponentLOS", DoubleValue(rf::PROP_N1));
+  loss->SetAttribute("ExponentNLOS",DoubleValue(rf::PROP_N2));
+  loss->SetAttribute("BreakpointDist",DoubleValue(rf::PROP_DBP_M));
   g_loss = loss;   // PosLog usa estos mismos parámetros (evita duplicar constantes)
   Ptr<YansWifiChannel> chan = CreateObject<YansWifiChannel>();
   chan->SetPropagationDelayModel(CreateObject<ConstantSpeedPropagationDelayModel>());

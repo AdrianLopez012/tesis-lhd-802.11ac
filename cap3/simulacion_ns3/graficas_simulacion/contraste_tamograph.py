@@ -11,16 +11,26 @@ Ejecutar:  python contraste_tamograph.py  ->  contraste_tamograph.png
 import numpy as np, matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import os, importlib.util
 
-# ---- modelo two-slope calibrado (idéntico a modelo_definitivo.py) ----
+HERE=os.path.dirname(os.path.abspath(__file__))
+spec_rf=importlib.util.spec_from_file_location("rf",os.path.join(HERE,"..","parametros_rf.py"))
+RF=importlib.util.module_from_spec(spec_rf); spec_rf.loader.exec_module(RF)
+
+# ---- modelo two-slope calibrado (fuente única: parametros_rf.py) ----
 # Para el CONTRASTE con TamoGraph se usa la config del dispositivo de SURVEY
 # (misma antena/pérdidas que midió el TamoGraph: L_survey=19.2 dB, Gr=0), para
 # que la comparación sea justa. El diseño real (Cardinal, L=9.4) da más señal.
-FREQ=5.0e9; LAMBDA=3e8/FREQ
-N1=1.9; N2=3.4; D_BP=40.0
+FREQ=RF.FREQ_HZ; LAMBDA=3e8/FREQ
+N1=RF.PROPAGACION["n1"]; N2=RF.PROPAGACION["n2"]; D_BP=RF.PROPAGACION["d_bp_m"]
 PL_D0=20*np.log10(4*np.pi/LAMBDA)
-PT=30.0; GT=11.0; GR_SURVEY=0.0; L_SURVEY=19.2   # config survey (comparar con TamoGraph)
-SIG1=5.0; SIG2=7.0                                # shadowing LOS/NLOS (bandas ±σ)
+PT=RF.HAWK["tx_power_dbm"]; GT=RF.HAWK["tx_gain_dbi"]
+GR_SURVEY=0.0; L_SURVEY=19.2   # config survey (comparar con TamoGraph)
+# Bandas ±σ del CONTRASTE: representan la DISPERSIÓN OBSERVADA en las medidas
+# del survey TamoGraph (5/7 dB), NO el shadowing del modelo NS-3 (SigmaLos/
+# SigmaNlos=2/3 dB, desactivado). Son conceptos distintos a propósito: aquí se
+# compara contra la variabilidad real de la medida de campo.
+SIG1=5.0; SIG2=7.0
 
 def pr(d):
     d=np.maximum(d,1.0)
@@ -39,7 +49,8 @@ TG_MAX=-45.0; TG_MIN=-85.0
 fig,ax=plt.subplots(figsize=(11,7))
 # banda del modelo ±σ
 ax.fill_between(d, prd-sig, prd+sig, color="#2E6FB0", alpha=0.15, label="Modelo two-slope ±σ (shadowing)")
-ax.plot(d, prd, color="#1B4C7E", lw=2.4, label="Modelo two-slope — config survey (n₁=1.9, n₂=3.4, d_bp=40 m)")
+ax.plot(d, prd, color="#1B4C7E", lw=2.4,
+        label=f"Modelo two-slope — config survey (n₁={N1:g}, n₂={N2:g}, d_bp={D_BP:g} m)")
 
 # banda de referencia TamoGraph
 ax.axhspan(TG_MIN, TG_MAX, color="#1D9E75", alpha=0.10)

@@ -22,21 +22,28 @@ HERE=os.path.dirname(os.path.abspath(__file__))
 spec=importlib.util.spec_from_file_location("datos",os.path.join(HERE,"mapa_nv1640_datos.py"))
 D=importlib.util.module_from_spec(spec); spec.loader.exec_module(D)
 
-# ---------------- MODELO two-slope calibrado (de modelo_definitivo.py) ----------------
-FREQ=5.0e9; LAMBDA=3e8/FREQ; BW=40e6
-N1=1.9; N2=3.4; N_NLOS=5.0; D_BP=40.0
-L_SYS=9.4                       # dB (Cardinal real)
+# ---------------- MODELO two-slope calibrado — FUENTE ÚNICA: parametros_rf.py ----------------
+# La fórmula es EXACTAMENTE la misma que usa la simulación NS-3 (two-slope n1->n2
+# + penalización fija por galería cruzada). Antes este script aplicaba además un
+# exponente NLOS=5.0 propio (doble penalización no documentada) => el mapa era
+# inconsistente con el modelo de la simulación. Corregido: un solo modelo en todo.
+spec_rf=importlib.util.spec_from_file_location("rf",os.path.join(HERE,"..","parametros_rf.py"))
+RF=importlib.util.module_from_spec(spec_rf); spec_rf.loader.exec_module(RF)
+FREQ=RF.FREQ_HZ; LAMBDA=3e8/FREQ; BW=RF.ANCHO_CANAL_MHZ*1e6
+N1=RF.PROPAGACION["n1"]; N2=RF.PROPAGACION["n2"]; D_BP=RF.PROPAGACION["d_bp_m"]
+L_SYS=RF.L_SYSTEM_DB
 PL_D0=20*np.log10(4*np.pi/LAMBDA)
 NF=6.0; NOISE=10*np.log10(1.38e-23*300*BW*1000)+NF   # ~-91.8 dBm
-GR_LHD=4.8                      # antena vehículo HELI-40 (dBic)
+GR_LHD=RF.LHD_ANTENA["gain_dbic"]                    # antena vehículo HELI-40 (dBic)
 
-# AP: (x, y, Pt, Gt)  — Hawk 30dBm/11dBi, Cardinal 23dBm/7.5dBi
-APS=[(x,y,30.0,11.0) for (x,y) in D.HAWKS]+[(x,y,23.0,7.5) for (x,y) in D.CARDINALS_AP]
+# AP: (x, y, Pt, Gt) — potencias/ganancias de los datasheets (fuente única)
+APS=[(x,y,RF.HAWK["tx_power_dbm"],RF.HAWK["tx_gain_dbi"]) for (x,y) in D.HAWKS]+ \
+    [(x,y,RF.CARDINAL["tx_power_dbm"],RF.CARDINAL["tx_gain_dbi"]) for (x,y) in D.CARDINALS_AP]
 
-def path_loss(d, nlos=False):
+def path_loss(d):
     d=max(d,1.0)
     if d<D_BP: pl=PL_D0+10*N1*np.log10(d)
-    else:      pl=PL_D0+10*N1*np.log10(D_BP)+10*(N_NLOS if nlos else N2)*np.log10(d/D_BP)
+    else:      pl=PL_D0+10*N1*np.log10(D_BP)+10*N2*np.log10(d/D_BP)
     return pl
 
 # --- Distancia por RUTA DE TÚNEL + NLOS (la señal NO cruza roca) ---
@@ -46,7 +53,7 @@ def path_loss(d, nlos=False):
 # penalización NLOS por cada pared/esquina cruzada.
 XG=D.X                       # x de las 3 galerías
 YT=D.YT; YB=D.YB
-NLOS_PENAL=10.0              # dB extra por cruzar de una galería a otra (esquina)
+NLOS_PENAL=RF.PROPAGACION["nlos_penal_db"]   # dB por galería cruzada (fuente única)
 
 def cual_galeria(x):
     return min(range(len(XG)), key=lambda i:abs(x-XG[i]))
@@ -65,12 +72,12 @@ def ruta_dist_y_nlos(ax,ay,px,py):
     return d, abs(ga-gp)   # nº de galerías cruzadas = nº transiciones NLOS
 
 def rssi_en(px,py):
-    """RSSI del mejor AP en (px,py), con distancia por ruta de túnel + NLOS."""
+    """RSSI del mejor AP en (px,py) — MISMA fórmula que la simulación NS-3:
+    two-slope por ruta de túnel + NLOS_PENAL dB por galería cruzada."""
     best=-999.0
     for (ax,ay,pt,gt) in APS:
         d,ncross=ruta_dist_y_nlos(ax,ay,px,py)
-        nlos = ncross>0
-        pr=pt+gt+GR_LHD-path_loss(d,nlos)-L_SYS-NLOS_PENAL*ncross
+        pr=pt+gt+GR_LHD-path_loss(d)-L_SYS-NLOS_PENAL*ncross
         if pr>best: best=pr
     return best
 

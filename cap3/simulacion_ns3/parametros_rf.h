@@ -27,5 +27,11 @@ namespace rf {
   // Sensibilidades objetivo (link budget y disponibilidad RNF-06)
   static const double SENS_VIDEO_DBM = -68.0;
   static const double SENS_BORDE_DBM = -82.0;
+
+  // Modelo de propagacion two-slope (calibrado TamoGraph) — fuente unica
+  static const double PROP_N1        = 1.90;
+  static const double PROP_N2        = 3.40;
+  static const double PROP_DBP_M     = 40.0;
+  static const double PROP_NLOS_DB   = 10.0;
 } // namespace rf
 #endif

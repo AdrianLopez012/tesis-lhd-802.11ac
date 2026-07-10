@@ -37,7 +37,12 @@ with open(out, "w", encoding="utf-8") as f:
     f.write(f"  static const double L_SYSTEM_DB    = {RF.L_SYSTEM_DB:.1f};\n\n")
     f.write("  // Sensibilidades objetivo (link budget y disponibilidad RNF-06)\n")
     f.write(f"  static const double SENS_VIDEO_DBM = {RF.SENS_VIDEO_DBM:.1f};\n")
-    f.write(f"  static const double SENS_BORDE_DBM = {RF.SENS_BORDE_DBM:.1f};\n")
+    f.write(f"  static const double SENS_BORDE_DBM = {RF.SENS_BORDE_DBM:.1f};\n\n")
+    f.write("  // Modelo de propagacion two-slope (calibrado TamoGraph) — fuente unica\n")
+    f.write(f"  static const double PROP_N1        = {RF.PROPAGACION['n1']:.2f};\n")
+    f.write(f"  static const double PROP_N2        = {RF.PROPAGACION['n2']:.2f};\n")
+    f.write(f"  static const double PROP_DBP_M     = {RF.PROPAGACION['d_bp_m']:.1f};\n")
+    f.write(f"  static const double PROP_NLOS_DB   = {RF.PROPAGACION['nlos_penal_db']:.1f};\n")
     f.write("} // namespace rf\n#endif\n")
 
 print(f"[OK] {os.path.abspath(out)}")

@@ -44,7 +44,11 @@ for s in $(seq 1 10); do run "principal_s${s}" --seed=${s}; done
 run baseline
 run estres_video --videoRate=50.0
 run estres_lhd --lhdSpeed=4.0
-run handover                       # roaming sensible => handovers medibles (RNF-05)
+# Escenario handover MULTI-SEMILLA (RNF-05 con respaldo estadístico): roaming
+# sensible => traspasos duros medibles. 5 semillas independientes (la 1ª conserva
+# el nombre "handover" a secas por compatibilidad con los resultados existentes).
+run handover --seed=1
+for s in 2 3 4 5; do run "handover_s${s}" --seed=${s}; done
 
 t1=$(date +%s)
 echo ""

@@ -60,9 +60,10 @@
   ```
 - **IMPORTANTE (aprendido):** las simulaciones **NO se pueden paralelizar** en este WSL
   (tanto el binario directo como varios `./ns3 run` a la vez se CUELGAN por contención
-  del directorio de build de ns-3). Se corren **EN SERIE**. La batería completa (14
-  corridas de 300 s) tarda **~3 HORAS** (medido: 10714 s el 2026-07-09; una versión
-  anterior de este documento decía 30-35 min por error). Es lento pero 100% fiable.
+  del directorio de build de ns-3). Se corren **EN SERIE**. La batería completa (18
+  corridas de 300 s: 10 semillas de operación + baseline + 2 estrés + 5 semillas de
+  handover) tarda **~4 HORAS** (la de 14 corridas midió 12596 s el 2026-07-09; una
+  versión anterior de este documento decía 30-35 min por error). Lento pero 100% fiable.
 - **Lanzar la batería en background desde Windows:** usar `setsid nohup ... < /dev/null &`
   y VERIFICAR con `pgrep` que el proceso vive antes de dar por lanzado. Un `nohup ... &`
   simple dentro de `wsl.exe -e bash -c "..."` MUERE al cerrar la sesión (aprendido:
@@ -328,7 +329,7 @@ python generar_geometria_h.py && python generar_recorrido_h.py && python generar
 cp ../lhd-teleop-v3-real.cc ../*.h ~/ns-allinone-3.40/ns-3.40/scratch/
 cp ../run_escenarios_v3.sh ~/
 cd ~ && nohup bash run_escenarios_v3.sh > ~/bateria_v3.log 2>&1 &
-# monitorear: grep -c LISTO ~/bateria_v3.log   (14 = terminó)
+# monitorear: grep -c LISTO ~/bateria_v3.log   (18 = terminó)
 
 # 3. copiar resultados al repo
 cp ~/ns-allinone-3.40/ns-3.40/results/*_v3_* <repo>/cap3/simulacion_ns3/results/

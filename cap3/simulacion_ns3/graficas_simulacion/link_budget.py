@@ -24,9 +24,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location("rf", os.path.join(HERE, "..", "parametros_rf.py"))
 RF = importlib.util.module_from_spec(spec); spec.loader.exec_module(RF)
 
-# ---------------- modelo de propagación two-slope calibrado ----------------
-FREQ = 5.0e9; LAMBDA = 3e8 / FREQ
-N1, N2, D_BP = 1.9, 3.4, 40.0
+# ---------------- modelo de propagación two-slope (fuente única: parametros_rf.py) ----------------
+FREQ = RF.FREQ_HZ; LAMBDA = 3e8 / FREQ
+N1, N2, D_BP = RF.PROPAGACION["n1"], RF.PROPAGACION["n2"], RF.PROPAGACION["d_bp_m"]
 PL_D0 = 20 * np.log10(4 * np.pi / LAMBDA)     # pérdida de referencia a 1 m
 L_SYS = RF.L_SYSTEM_DB                          # 9.4 dB
 GR_LHD = RF.LHD_ANTENA["gain_dbic"]            # 4.8 dBi (HELI-40)
