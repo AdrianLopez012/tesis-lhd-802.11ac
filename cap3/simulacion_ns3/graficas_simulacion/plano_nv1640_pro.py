@@ -100,6 +100,12 @@ for (x,y) in D.BOTADEROS:
     ax.add_patch(Circle((x,y),4.8,facecolor=C_BOT,edgecolor="#000",linewidth=1.3,zorder=8))
     ax.plot([x-2.3,x,x+2.3],[y+1.5,y-1.9,y+1.5],color=BG,lw=1.7,zorder=9)
 
+# AP de la red (posiciones reales del plano): Hawk triángulo, Cardinal cuadrado
+for (hx,hy) in D.HAWKS:
+    ax.scatter(hx,hy,s=150,marker="^",c="#1565C0",edgecolors="#FFF",linewidths=1.4,zorder=11)
+for (cx,cy) in D.CARDINALS_AP:
+    ax.scatter(cx,cy,s=120,marker="s",c="#7B1FA2",edgecolors="#FFF",linewidths=1.4,zorder=11)
+
 # escala gráfica
 x0=min(px); y0=min(py)-26
 for k in range(5):
@@ -117,7 +123,9 @@ leg=[Line2D([0],[0],color=C_RAMPA,lw=8,label="Rampa de acceso"),
      Line2D([0],[0],color=C_PROD,lw=8,label="Galería de producción"),
      Line2D([0],[0],marker="o",color="none",markerfacecolor=C_DRAW,markeredgecolor=C_DRAW_ED,markersize=11,label="Drawpoint (extracción)"),
      Line2D([0],[0],marker="D",color="none",markerfacecolor=C_BELL,markeredgecolor=C_BELL_ED,markersize=11,label="Drawbell (mineral compartido)"),
-     Line2D([0],[0],marker="o",color="none",markerfacecolor=C_BOT,markeredgecolor="#000",markersize=13,label="Pique de traspaso (descarga)")]
+     Line2D([0],[0],marker="o",color="none",markerfacecolor=C_BOT,markeredgecolor="#000",markersize=13,label="Pique de traspaso (descarga)"),
+     Line2D([0],[0],marker="^",color="none",markerfacecolor="#1565C0",markeredgecolor="#FFF",markersize=12,label="AP Hawk (30 dBm / 11 dBi)"),
+     Line2D([0],[0],marker="s",color="none",markerfacecolor="#7B1FA2",markeredgecolor="#FFF",markersize=11,label="AP Cardinal (23 dBm / 7.5 dBi)")]
 lg=ax.legend(handles=leg,loc="upper left",bbox_to_anchor=(1.01,1.0),fontsize=11,
              frameon=True,framealpha=1.0,edgecolor=INK,borderpad=1.0,labelspacing=1.0)
 lg.get_frame().set_facecolor("#FFFFFF")
