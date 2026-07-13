@@ -1,0 +1,7 @@
+# derivables y temporales de verificación (regenerables desde tesis_v2.docx)
+unzip/
+*.pdf
+pag_*.png
+tesis_texto.txt
+tesis_texto.md
+mapa_headings.txt
