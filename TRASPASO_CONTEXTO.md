@@ -4,7 +4,13 @@
 > configuración de GitHub hasta el estado actual, para que otra cuenta/sesión pueda
 > continuar sin problemas. Léelo completo antes de continuar.
 >
-> Fecha del traspaso: 2026-07-09
+> Fecha del traspaso original: 2026-07-09 · **Actualizado 2026-07-14** (traspaso a otra cuenta).
+>
+> **⚡ SI CONTINÚAS ESTE TRABAJO EN OTRA CUENTA: lee la sección 12 primero.**
+> La simulación NS-3 está CERRADA (6 rondas de auditoría, todos los KPIs cumplen).
+> La FASE 4 (integración al Word de la tesis) está sustancialmente TERMINADA;
+> el documento maestro es `fase4/trabajo/tesis_v2.docx` (166 págs). Entrega: JUE 16.
+> El repo está en GitHub, rama `geometria-real-nv1640`, todo pusheado hasta bf2ba14.
 
 ---
 
@@ -301,20 +307,68 @@ c9298b1 Batería completa con el código auditado (F1-F5): 14/14 escenarios, TOD
 
 ---
 
-## 12. QUÉ FALTA — PRÓXIMO PASO (FASE 4)
+## 12. FASE 4 (WORD) — ESTADO ACTUAL Y CÓMO CONTINUAR
 
-**Integrar todo al documento Word de la tesis.** Pendiente:
-1. Ubicar el archivo .docx de la tesis (el usuario debe indicar dónde está;
-   antes se trabajó con un Word llamado tipo "Avance_Lopez_Adrian_248_paginas").
-2. Insertar las figuras nuevas en el Capítulo 3 (con pies de figura).
-3. Redactar/actualizar la sección de metodología de simulación y la tabla de KPIs.
-4. Actualizar el texto de la geometría real (vs la galería recta anterior).
+**ENTREGA: JUEVES 16. El documento está sustancialmente TERMINADO.** Todo el
+trabajo de la Fase 4 vive en `fase4/` (NO estaba en el repo al inicio; el
+usuario entregó el .docx y dos .md con observaciones/criterios).
 
-### Comentarios del profesor pendientes (de una versión anterior de la tesis)
-- Corregir "LUCE"→"LUCET" en portada; "802.11 ac"→"802.11ac"; "se a realizado"→"se ha realizado".
-- Consolidar informe de similitud; resúmenes ejecutivos en la bitácora de simulación.
-- Alineamiento con ODS en Cap. 3 (ya existe sección 3.5.3 — resuelto).
-El profesor calificó la tesis como "alto nivel académico, muy bien encaminado".
+### Archivos clave de la Fase 4 (en `fase4/`)
+- `tesis_original.docx` — el Word original del usuario, INTACTO (respaldo).
+- `trabajo/tesis_v2.docx` — **EL DOCUMENTO MAESTRO** (166 págs, 23 figuras).
+  Aquí se edita todo. Contiene ediciones del propio usuario (dedicatoria,
+  agradecimientos, estilo) hechas el 2026-07-14 — commit bf2ba14.
+- `trabajo/tesis_v2.pdf` — PDF generado desde el Word (para lectura/entrega).
+- `anexo_digital_tesis_lopez.zip` — anexo digital (6.8 MB) con código, results,
+  figuras y scripts; se regenera con `armar_anexo_digital.sh`. NO versionado.
+- `observaciones_asesor.md` — observaciones del asesor (todas resueltas).
+- `trabajo/edit_*.py` — scripts REPRODUCIBLES de cada edición (verifican el
+  contenido antes de tocar cada párrafo). `gen_matlab_*.py` + `*.m` — figuras MATLAB.
+
+### QUÉ SE HIZO (Etapas A–E + extras, todo commiteado y pusheado)
+- **Cap. 3** actualizado v8.2→v3-REAL: 29 párrafos, 5 tablas con datos LEÍDOS
+  de los CSVs (cero números a mano), Figuras 9 (plano con 12 AP), 10 (escena 3D
+  MATLAB con cobertura+recorrido+patrón), 11 (arquitectura), 12 (RSSI del enlace
+  asociado — responde la duda del roaming: nunca baja de −72.1 dBm).
+- **Cap. 4** escrito COMPLETO (era placeholder): estructura Lección 09, 11
+  secciones, idoneidad técnica/económica/ambiental/legal/ética. Figura 14 (KPIs
+  vs referencias), 15 (CAPEX/OPEX estructural SIN montos inventados). Tablas 25/26.
+- **Conclusiones** (8, cierran los objetivos específicos) y **Recomendaciones**
+  (6) escritas (eran placeholders). Método Lección 10, verbos en presente.
+- **Anexos B–H** reescritos con material v3-REAL + huellas SHA-256 reales.
+- **Formato**: 3 tablas anchas reescaladas; captions convertidos a campos SEQ
+  (el doc usa numeración automática — manual chocaba); índices actualizados.
+- **Figuras MATLAB extra** (Antenna Toolbox, R2024b del usuario): patrón de
+  antena 3D+cortes (Fig 21), curva Prx-distancia (Fig 22, cruces 127/327 m que
+  COINCIDEN con link_budget.py = validación cruzada), CDF RSSI (Fig 23).
+- **Coherencia Cap. 1–2** verificada: 0 referencias al modelo viejo.
+- Correcciones del asesor: verificadas, ya no existen en esta versión.
+
+### PENDIENTE (para la otra cuenta)
+1. **Regenerar el PDF** desde `trabajo/tesis_v2.docx` tras las ediciones del
+   usuario (Word COM: abrir → Fields.Update → TablesOfFigures.Update → Save →
+   ExportAsFixedFormat 17). Y **regenerar el anexo digital** (`bash
+   fase4/armar_anexo_digital.sh`) por si el usuario cambió figuras.
+2. **Confirmar el FORMATO de entrega** que pide el curso (¿PDF? ¿Word? ¿+ZIP a
+   PAIDEIA?) y armar el paquete final.
+3. Aplicar cualquier corrección que el usuario pida tras su lectura final.
+
+### FASES POSTERIORES (NO son la entrega; contexto)
+- **Ray-tracing 3D en MATLAB (SBR + STL)**: modelar la galería 3D con materiales
+  de roca reales (εr, σ) y comparar cobertura SBR vs two-slope vs TamoGraph =
+  validación triple. AGENDADO PARA EL PAPER (riesgo alto antes del jueves).
+  El STL se puede generar desde `mapa_nv1640_datos.py` (fuente única).
+- **Animación 3D** del recorrido con el AP servidor iluminándose (ya generada:
+  `trabajo/anim_recorrido_3d.mp4`, 307 frames del pos_log real) → SUSTENTACIÓN.
+- Luego: ODT/PPTX (presentación; el profesor acepta ambos → usar PPTX), póster
+  (plantilla XpoSTEM), preparación de sustentación (las rúbricas del jurado están
+  en el .md de datos del profesor, BLOQUE VI).
+
+### Comentarios del profesor (TODOS resueltos en esta versión)
+- "LUCE"→"LUCET" (solo estaba en el logo gráfico, correcto); "802.11 ac"→"802.11ac";
+  "se a realizado"→"se ha realizado"; "debe de garantizar"→"debe garantizar" — verificado 0 residuos.
+- Alineamiento con ODS: sección 3.5.3 (resuelto) + ODS 12 añadido en Cap. 4.
+- El profesor calificó la tesis "alto nivel académico, muy bien encaminado".
 
 ---
 
