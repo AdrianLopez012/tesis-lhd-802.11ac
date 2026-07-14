@@ -28,7 +28,7 @@ cp "$SIM"/results/*_v3_* "$OUT/results/"
 
 # figuras/: PNG resolución completa + animación + escena 3D MATLAB
 cp "$SIM"/graficas_simulacion/*.png "$SIM"/graficas_simulacion/recorrido_lhd.gif "$OUT/figuras/"
-cp "$BASE/fase4/trabajo/escena_mina_3d.png" "$BASE/fase4/trabajo/escena_mina_3d.m" "$BASE/fase4/trabajo/patron_antena_3d.png" "$BASE/fase4/trabajo/patron_antena_3d.m" "$BASE/fase4/trabajo/anim_recorrido_3d.mp4" "$OUT/figuras/"
+cp "$BASE/fase4/trabajo/escena_mina_3d.png" "$BASE/fase4/trabajo/escena_mina_3d.m" "$BASE/fase4/trabajo/patron_antena_3d.png" "$BASE/fase4/trabajo/patron_antena_3d.m" "$BASE/fase4/trabajo/grafico_rssi_asociado.png" "$BASE/fase4/trabajo/grafico_rssi_asociado.m" "$OUT/figuras/"
 
 # ejecucion/: batería + README de reproducción
 cp "$SIM"/run_escenarios_v3.sh "$SIM"/README.md "$OUT/ejecucion/"
