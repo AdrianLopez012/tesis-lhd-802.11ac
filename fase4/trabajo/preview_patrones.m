@@ -22,6 +22,9 @@ ax = axes(fig); hold(ax,'on'); set(ax,'Color',[0.06 0.06 0.08]);
 tr = stlread(STL);
 trisurf(tr,'FaceColor',[0.52 0.47 0.42],'EdgeColor','none','FaceAlpha',1.0, ...
     'FaceLighting','gouraud','AmbientStrength',0.4,'DiffuseStrength',0.9,'Parent',ax);
+trT = stlread([TRB 'galeria_techo.stl']);
+trisurf(trT,'FaceColor',[0.50 0.44 0.38],'EdgeColor','none','FaceAlpha',0.15, ...
+    'FaceLighting','gouraud','AmbientStrength',0.4,'Parent',ax);
 
 % dibuja el lóbulo de un patrón centrado en (cx,cy,cz), escala en metros
 function dibujarLobulo(ax, pat, az, el, cx, cy, cz, esc, cmap)
@@ -61,6 +64,7 @@ axis(ax,'equal'); axis(ax,'off'); view(ax,-28,42);
 % vista amplia: ver TODA la red irradiando
 xlim(ax,[-6 60]); ylim(ax,[-8 172]); zlim(ax,[0 20]);
 light(ax,'Position',[26 80 80],'Style','infinite','Color',[0.75 0.75 0.8]);
+light(ax,'Position',[90 -30 50],'Style','infinite','Color',[0.4 0.38 0.35]);
 light(ax,'Position',[26 40 40],'Style','infinite','Color',[0.5 0.5 0.55]);
 title(ax,'Patrones de radiación de la red: 12 AP irradiando en la zona de producción','FontSize',15,'Color','w');
 exportgraphics(fig,[TRB 'preview_patrones.png'],'Resolution',150);
