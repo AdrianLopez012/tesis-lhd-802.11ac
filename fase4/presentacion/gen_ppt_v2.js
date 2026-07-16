@@ -241,6 +241,42 @@ s.addText([
 ], { x: 1.0, y: 5.78, w: 11.3, h: 0.85, fontFace: F_B, fontSize: 12.5, lineSpacingMultiple: 1.1, valign: "middle" });
 s.addNotes("60 segundos. Este es el diferenciador técnico: no solo simulación de red — también la capa física del estándar (jerarquía de MCS correcta, constelación 256-QAM tras el canal) y los patrones reales de las antenas en la geometría de la mina. Mensaje: 'el análisis baja hasta el símbolo de modulación'.");
 
+// ============ 10b · ANTENAS: PATRONES 3D DE DIRECTIVIDAD ============
+s = p.addSlide(); s.background = { color: BLANCO };
+titulo(s, "Las antenas del diseño y sus patrones 3D"); tag(s, "Resultados · 7 min");
+s.addImage({ path: DIR + "patron3d_hawk.png", x: 0.55, y: 1.7, w: 4.15, h: 3.35 });
+s.addImage({ path: DIR + "patron3d_cardinal.png", x: 4.85, y: 1.7, w: 4.15, h: 3.35 });
+s.addImage({ path: DIR + "patron3d_lhd.png", x: 9.15, y: 1.7, w: 3.65, h: 3.35 });
+const ANT = [
+  ["Hawk — HELI RCP-50", "11 dBi · pol. circular · lóbulo axial instalado a lo largo de la galería", 0.55, 4.15],
+  ["Cardinal — EPNT-7", "7.5 dBi · omnidireccional (la “dona” es su patrón real) · cruceros", 4.85, 4.15],
+  ["LHD — HELI-40", "4.8 dBic · pol. circular · BIDIRECCIONAL: dos lóbulos por el túnel", 9.15, 3.65],
+];
+ANT.forEach(a => {
+  card(s, a[2], 5.15, a[3], 1.05);
+  s.addText(a[0], { x: a[2] + 0.2, y: 5.25, w: a[3] - 0.4, h: 0.35, fontFace: F_B, fontSize: 12.5, bold: true, color: AZUL });
+  s.addText(a[1], { x: a[2] + 0.2, y: 5.6, w: a[3] - 0.4, h: 0.55, fontFace: F_B, fontSize: 10, color: INK, lineSpacingMultiple: 1.0 });
+});
+s.addText("Patrones de directividad calculados por método de momentos (Antenna Toolbox, 5 GHz); el de la HELI-40 sintetizado según su especificación bidireccional de datasheet.",
+  { x: 0.75, y: 6.5, w: 11.9, h: 0.55, fontFace: F_B, fontSize: 10.5, italic: true, color: GRIS, align: "center" });
+s.addNotes("40 segundos. Justificación de cada antena: el Hawk lleva la RCP-50 (11 dBi) con su lóbulo axial apuntando A LO LARGO de la galería — así se instala en túnel. El Cardinal usa la EPNT-7 omni para los cruceros (cobertura en todas direcciones). El LHD lleva la HELI-40, BIDIRECCIONAL según datasheet: dos lóbulos opuestos por el eje del túnel — ideal para un vehículo que avanza y retrocede. La polarización circular mitiga el desvanecimiento por multitrayecto en la roca. Todo calculado con método de momentos en MATLAB.");
+
+// ============ 10c · VALIDACIÓN CRUZADA DEL CANAL (ray-tracing) ============
+s = p.addSlide(); s.background = { color: BLANCO };
+titulo(s, "Validación cruzada del modelo de canal"); tag(s, "Resultados · 7 min");
+s.addImage({ path: DIR + "raytracing_validacion.png", x: 0.75, y: 1.65, w: 8.0, h: 4.6 });
+card(s, 9.0, 1.65, 3.55, 2.25, HIELO);
+s.addText("Zona de concordancia", { x: 9.2, y: 1.82, w: 3.15, h: 0.4, fontFace: F_B, fontSize: 13, bold: true, color: VERDE });
+s.addText("En campo cercano, el ray-tracing 3D (SBR, roca εr=6, σ=0.01 S/m) coincide con el modelo two-slope: error medio ≈ 5 dB.",
+  { x: 9.2, y: 2.24, w: 3.2, h: 1.55, fontFace: F_B, fontSize: 11.5, color: INK, lineSpacingMultiple: 1.1 });
+card(s, 9.0, 4.1, 3.55, 2.35, HIELO);
+s.addText("Y donde divergen…", { x: 9.2, y: 4.27, w: 3.15, h: 0.4, fontFace: F_B, fontSize: 13, bold: true, color: AZUL });
+s.addText("…el ray-tracing SUBESTIMA el alcance: no captura el modo guía de onda del túnel (Sun & Akyildiz). Justo por eso el diseño usa el two-slope calibrado con el site survey.",
+  { x: 9.2, y: 4.69, w: 3.2, h: 1.7, fontFace: F_B, fontSize: 11.5, color: INK, lineSpacingMultiple: 1.1 });
+s.addText("Comparación two-slope vs ray-tracing SBR sobre la geometría 3D de la galería (MATLAB).",
+  { x: 0.75, y: 6.35, w: 8.0, h: 0.5, fontFace: F_B, fontSize: 11, italic: true, color: GRIS, align: "center" });
+s.addNotes("45 segundos — la slide que blinda el modelo ante el jurado. Justificación paso a paso: (1) construí la galería en 3D con propiedades de roca (permitividad 6, conductividad 0.01 S/m); (2) lancé ray-tracing SBR con hasta 6 reflexiones; (3) en campo cercano AMBOS métodos coinciden (error ~5 dB) — el modelo queda validado por un método independiente; (4) a larga distancia el ray-tracing pierde los rayos porque no modela el guiado de onda del túnel — limitación documentada en la literatura — lo que JUSTIFICA usar el two-slope calibrado con el survey real. Doble validación + honestidad metodológica.");
+
 // ============ 11 · IDONEIDAD ============
 s = p.addSlide(); s.background = { color: BLANCO };
 titulo(s, "Una solución idónea en todas sus dimensiones"); tag(s, "Resultados · 7 min");
