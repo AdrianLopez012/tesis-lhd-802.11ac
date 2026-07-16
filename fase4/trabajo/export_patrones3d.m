@@ -3,9 +3,13 @@ TRB = 'C:\Users\Adrian Lopez\Documents\tesis_proyecto\fase4\trabajo\';
 f0 = 5e9;
 
 hawk = helix('Radius',0.0091,'Width',0.0016,'Turns',9,'Spacing',0.0115);
+az = -180:3:180; el = -90:3:90;
+pHk = pattern(hawk, f0, az, el);
+pHbi = max(pHk, flipud(pHk));           % BIDIRECCIONAL según datasheet RCP-50
+[AZh, ELh] = meshgrid(az, el);
 f1 = figure('Color','w','Position',[40 40 660 540],'Visible','off');
-pattern(hawk, f0);
-title({'AP Hawk — antena HELI RCP-50 (11 dBi, pol. circular)','modelo: hélice axial de 9 vueltas'});
+patternCustom(pHbi(:), 90-ELh(:), AZh(:));
+title({'AP Hawk — RCP-50 LHP/RHP (11 dBi, pol. circular L/R, BIDIRECCIONAL)','dos lóbulos a lo largo de la galería — instalación de túnel/mina'});
 exportgraphics(f1, [TRB 'patron3d_hawk.png'], 'Resolution', 180);
 
 card = dipole('Length',0.028,'Width',0.001);

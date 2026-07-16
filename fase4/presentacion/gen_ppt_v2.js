@@ -248,7 +248,7 @@ s.addImage({ path: DIR + "patron3d_hawk.png", x: 0.55, y: 1.7, w: 4.15, h: 3.35 
 s.addImage({ path: DIR + "patron3d_cardinal.png", x: 4.85, y: 1.7, w: 4.15, h: 3.35 });
 s.addImage({ path: DIR + "patron3d_lhd.png", x: 9.15, y: 1.7, w: 3.65, h: 3.35 });
 const ANT = [
-  ["Hawk — HELI RCP-50", "11 dBi · pol. circular · lóbulo axial instalado a lo largo de la galería", 0.55, 4.15],
+  ["Hawk — RCP-50 LHP/RHP (par)", "11 dBi · BIDIRECCIONAL: dos lóbulos a lo largo de la galería · pol. circular izq./der. (diversidad MIMO) · tramos largos", 0.55, 4.15],
   ["Cardinal — EPNT-7", "7.5 dBi · omnidireccional (la “dona” es su patrón real) · cruceros", 4.85, 4.15],
   ["LHD — HELI-40", "4.8 dBic · pol. circular · BIDIRECCIONAL: dos lóbulos por el túnel", 9.15, 3.65],
 ];
@@ -257,9 +257,9 @@ ANT.forEach(a => {
   s.addText(a[0], { x: a[2] + 0.2, y: 5.25, w: a[3] - 0.4, h: 0.35, fontFace: F_B, fontSize: 12.5, bold: true, color: AZUL });
   s.addText(a[1], { x: a[2] + 0.2, y: 5.6, w: a[3] - 0.4, h: 0.55, fontFace: F_B, fontSize: 10, color: INK, lineSpacingMultiple: 1.0 });
 });
-s.addText("Patrones de directividad calculados por método de momentos (Antenna Toolbox, 5 GHz); el de la HELI-40 sintetizado según su especificación bidireccional de datasheet.",
+s.addText("Patrones de directividad calculados por método de momentos (Antenna Toolbox, 5 GHz); los bidireccionales (RCP-50 y HELI-40) sintetizados según la especificación de sus datasheets Poynting.",
   { x: 0.75, y: 6.5, w: 11.9, h: 0.55, fontFace: F_B, fontSize: 10.5, italic: true, color: GRIS, align: "center" });
-s.addNotes("40 segundos. Justificación de cada antena: el Hawk lleva la RCP-50 (11 dBi) con su lóbulo axial apuntando A LO LARGO de la galería — así se instala en túnel. El Cardinal usa la EPNT-7 omni para los cruceros (cobertura en todas direcciones). El LHD lleva la HELI-40, BIDIRECCIONAL según datasheet: dos lóbulos opuestos por el eje del túnel — ideal para un vehículo que avanza y retrocede. La polarización circular mitiga el desvanecimiento por multitrayecto en la roca. Todo calculado con método de momentos en MATLAB.");
+s.addNotes("40 segundos. Justificación de cada antena según datasheet Poynting: el Hawk lleva el PAR RCP-50 LHP + RHP (11 dBi, BIDIRECCIONAL, 'Mine/tunnel installations'): dos lóbulos que cubren la galería en AMBOS sentidos, y las dos polarizaciones circulares (izquierda y derecha) dan la diversidad para los 2 streams MIMO — por eso va en los TRAMOS LARGOS. El Cardinal usa la EPNT-7 omni para los cruceros. El LHD lleva la HELI-40 (4.8 dBic), también bidireccional — el vehículo avanza y retrocede. La polarización circular mitiga el multitrayecto de la roca. Patrones calculados por método de momentos; los bidireccionales sintetizados según especificación.");
 
 // ============ 10c · VALIDACIÓN CRUZADA DEL CANAL (ray-tracing) ============
 s = p.addSlide(); s.background = { color: BLANCO };
