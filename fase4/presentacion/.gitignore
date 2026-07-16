@@ -1,4 +1,7 @@
 node_modules/
 package-lock.json
 slide-*.jpg
+v2-*.jpg
+fc-*.jpg
+poster-*.jpg
 *.pdf
