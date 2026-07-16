@@ -49,11 +49,8 @@ set(g,'Matrix',makehgtform('translate',[x y 0],'zrotate',pi/2));
 plot3(ax,x+3.8,y,1.4,'o','MarkerSize',9,'MarkerFaceColor',[1 1 0.75],'MarkerEdgeColor','none');
 light(ax,'Position',[x+8 y 3],'Style','local','Color',[1 0.95 0.75]);
 
-k=REC(i0,4);
-if k>=1
-    plot3(ax,AP(k,1),AP(k,2),3.4,'o','MarkerSize',22,'Color',[1 0.55 0.15],'LineWidth',2.5);
-    plot3(ax,[x AP(k,1)],[y AP(k,2)],[2.4 3.4],'-','Color',[1 0.6 0.2],'LineWidth',2);
-end
+% (sin línea de enlace recto: la señal NO atraviesa la roca; el enlace real
+%  se muestra en el video y en las láminas de rayos, siguiendo las galerías)
 
 axis(ax,'equal'); axis(ax,'off'); view(ax,-32,40);
 xlim(ax,[-8 62]); ylim(ax,[-8 172]); zlim(ax,[0 18]);
