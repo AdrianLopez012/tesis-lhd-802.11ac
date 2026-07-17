@@ -70,10 +70,11 @@ card(s, 0.75, 1.6, 5.9, 2.5, HIELO);
 s.addText("Una motivación con raíz personal", { x: 1.05, y: 1.78, w: 5.3, h: 0.42, fontFace: F_B, fontSize: 14, bold: true, color: AZUL });
 s.addText("Nací en una tierra donde la minería marca la vida de las familias. Crecí sabiendo lo que significa que alguien entre a una labor subterránea — y esta carrera me dio la forma de devolver algo: usar las telecomunicaciones para cuidar a esas personas.",
   { x: 1.05, y: 2.24, w: 5.35, h: 1.7, fontFace: F_H, fontSize: 13.5, italic: true, color: INK, lineSpacingMultiple: 1.12 });
-card(s, 0.75, 4.35, 5.9, 2.3, "FDF3E7");
-s.addText("El dato que no se puede ignorar", { x: 1.05, y: 4.55, w: 5.3, h: 0.45, fontFace: F_B, fontSize: 14, bold: true, color: AMBAR });
-s.addText("Cada año se registran víctimas mortales en la minería peruana; una parte importante ocurre en el frente de operación, justo donde trabaja el operador del LHD (OSINERGMIN).",
-  { x: 1.05, y: 5.02, w: 5.35, h: 1.45, fontFace: F_B, fontSize: 12.5, color: INK, lineSpacingMultiple: 1.12 });
+card(s, 0.75, 4.35, 5.9, 2.5, BLANCO);
+s.addText("El dato que no se puede ignorar", { x: 1.05, y: 4.48, w: 5.3, h: 0.4, fontFace: F_B, fontSize: 13.5, bold: true, color: AMBAR });
+s.addImage({ path: DIR + "osinergmin_2024.png", x: 0.95, y: 4.95, w: 5.5, h: 1.6 });
+s.addText("Accidentes y víctimas mortales por lugar, Perú 2024 — elaborado a partir de OSINERGMIN.",
+  { x: 0.95, y: 6.55, w: 5.5, h: 0.3, fontFace: F_B, fontSize: 9, italic: true, color: GRIS, align: "center" });
 card(s, 7.0, 1.6, 5.55, 5.05, OSCURO);
 s.addText("La oportunidad de ingeniería", { x: 7.35, y: 1.85, w: 4.9, h: 0.5, fontFace: F_B, fontSize: 14, bold: true, color: CELESTE });
 s.addText([
