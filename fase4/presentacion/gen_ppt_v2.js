@@ -4,6 +4,10 @@ const pptxgen = require("pptxgenjs");
 const p = new pptxgen();
 p.defineLayout({ name: "W", width: 13.333, height: 7.5 });
 p.layout = "W";
+p.author = "Adrián Álvaro López Pascual";
+p.company = "Pontificia Universidad Católica del Perú";
+p.title = "Sustentación de Tesis — Red IEEE 802.11ac para teleoperación de LHD";
+p.subject = "Trabajo de Tesis 2";
 const DIR = "C:/Users/Adrian Lopez/Documents/tesis_proyecto/fase4/presentacion/";
 
 // paleta PUCP: azul dominante, celeste apoyo, blanco; oscuro para portada/cierre
@@ -168,6 +172,23 @@ s.addText([
   { text: "El modelo respeta la física del túnel: la cobertura viaja por las labores abiertas, con penalización por cada galería cruzada.", options: { color: INK } },
 ], { x: 7.4, y: 5.62, w: 4.95, h: 0.95, fontFace: F_B, fontSize: 11.5, lineSpacingMultiple: 1.08, valign: "middle" });
 s.addNotes("Inicio de los 7 minutos de resultados. Mostrar el plano real 15 s. REPRODUCIR EL VIDEO (clic) mientras se explica: 'el vehículo recorre el ciclo real de operación; arriba se ve el AP que lo sirve y su nivel de señal — datos de la simulación, no una caricatura'. Si el video no reproduce, seguir con la imagen sin perder ritmo.");
+
+// ============ 6b · ARQUITECTURA DE LA RED ============
+s = p.addSlide(); s.background = { color: BLANCO };
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "Arquitectura de la solución: anillo de fibra y malla de acceso");
+s.addImage({ path: DIR + "arquitectura_red.png", x: 0.9, y: 1.6, w: 8.2, h: 4.9 });
+card(s, 9.4, 1.6, 3.2, 4.9, HIELO);
+s.addText([
+  { text: "Tres capas\n\n", options: { bold: true, color: AZUL, fontSize: 13.5 } },
+  { text: "Control: ", options: { bold: true, color: INK, fontSize: 11.5 } },
+  { text: "estación de teleoperación, controlador y gateway de malla.\n\n", options: { color: INK, fontSize: 11.5 } },
+  { text: "Backbone: ", options: { bold: true, color: INK, fontSize: 11.5 } },
+  { text: "anillo de fibra óptica monomodo de 1 Gbps con switches de acceso — redundancia ante cortes.\n\n", options: { color: INK, fontSize: 11.5 } },
+  { text: "Acceso: ", options: { bold: true, color: INK, fontSize: 11.5 } },
+  { text: "12 AP (5 Hawk en tramos largos + 7 Cardinal en cruceros) conectados por Cat 6; el LHD embarca radio y antena HELI-40.", options: { color: INK, fontSize: 11.5 } },
+], { x: 9.65, y: 1.85, w: 2.75, h: 4.4, fontFace: F_B, lineSpacingMultiple: 1.1 });
+s.addNotes("45 segundos. La arquitectura documentada: solo el ultimo tramo es inalambrico (LHD a AP); del AP en adelante todo va por cable — Cat 6 al switch de acceso y anillo de fibra al core. El ANILLO da redundancia: si se corta un lado, el trafico gira por el otro. Diseno alineado a la red documentada de la mina.");
 
 // ============ 7 · KPIs (oscura, números grandes) ============
 s = p.addSlide(); s.background = { color: OSCURO };

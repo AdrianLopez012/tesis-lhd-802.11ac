@@ -7,6 +7,8 @@ const p = new pptxgen();
 const W = 23.386, H = 33.11;
 p.defineLayout({ name: "A1", width: W, height: H });
 p.layout = "A1";
+p.author = "Adrián Álvaro López Pascual";
+p.company = "Pontificia Universidad Católica del Perú";
 const DIR = "C:/Users/Adrian Lopez/Documents/tesis_proyecto/fase4/presentacion/";
 
 const AZUL="0033A0", CELESTE="5AA0DC", HIELO="EAF2FB", INK="1A2733", GRIS="5B6670",
