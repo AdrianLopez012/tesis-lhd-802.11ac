@@ -26,6 +26,7 @@ function card(s, x, y, w, h, fill = HIELO) {
 
 // ============ 1 · CARÁTULA (oscura) ============
 let s = p.addSlide(); s.background = { color: OSCURO };
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
 s.addImage({ path: DIR + "mina_realista_3d.png", x: 7.1, y: 1.6, w: 5.6, h: 4.3, rounding: true, transparency: 18 });
 s.addText("PONTIFICIA UNIVERSIDAD CATÓLICA DEL PERÚ", { x: 0.85, y: 0.7, w: 8, h: 0.4,
   fontFace: F_B, fontSize: 14, color: CELESTE, bold: true, charSpacing: 3 });
@@ -43,6 +44,7 @@ s.addNotes("Saludo al jurado. Nombre completo, título de la tesis, asesor. 20 s
 
 // ============ 2 · ¿DE QUÉ TRATA? ============
 s = p.addSlide(); s.background = { color: BLANCO };
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
 titulo(s, "¿De qué trata este trabajo?");
 s.addImage({ path: DIR + "escena_mina_3d.png", x: 6.9, y: 1.5, w: 5.9, h: 4.4 });
 s.addText("Zona de producción NV1640 (Nexa Cerro Lindo): cobertura calculada, recorrido real del vehículo y patrón de la antena.",
@@ -62,7 +64,8 @@ s.addNotes("Descripción breve obligatoria: qué es y qué logra, sin entrar a d
 
 // ============ 3 · MOTIVACIÓN (3 min) ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "¿Por qué esta tesis?"); tag(s, "Motivación · 3 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "¿Por qué esta tesis?");
 card(s, 0.75, 1.6, 5.9, 2.5, HIELO);
 s.addText("Una motivación con raíz personal", { x: 1.05, y: 1.78, w: 5.3, h: 0.42, fontFace: F_B, fontSize: 14, bold: true, color: AZUL });
 s.addText("Nací en una tierra donde la minería marca la vida de las familias. Crecí sabiendo lo que significa que alguien entre a una labor subterránea — y esta carrera me dio la forma de devolver algo: usar las telecomunicaciones para cuidar a esas personas.",
@@ -85,7 +88,8 @@ s.addNotes("3 MINUTOS. Empezar con la historia personal (genuina, 45 s) — el v
 
 // ============ 4 · OBJETIVOS (3 min) ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "Objetivos"); tag(s, "Objetivos · 3 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "Objetivos");
 card(s, 0.75, 1.55, 11.85, 1.25, AZUL);
 s.addText([
   { text: "Objetivo general:  ", options: { bold: true, color: CELESTE } },
@@ -110,7 +114,8 @@ s.addNotes("3 MINUTOS. Leer el objetivo general con énfasis en 'evidencia verif
 
 // ============ 5 · METODOLOGÍA: DESIGN THINKING (5 min) ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "Metodología: Design Thinking aplicado a ingeniería"); tag(s, "Metodología · 5 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "Metodología: Design Thinking aplicado a ingeniería");
 const DT = [
   ["Empatizar", "El operador y su exposición al riesgo en el frente"],
   ["Definir", "Requisitos y KPIs medibles por flujo (vídeo, mando, telemetría)"],
@@ -144,7 +149,8 @@ s.addNotes("5 MINUTOS. MENCIONAR 'Design Thinking' explícitamente (rúbrica). R
 
 // ============ 6 · EL ENTORNO REAL + VIDEO ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "El diseño vive en la geometría real de la mina"); tag(s, "Resultados · 7 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "El diseño vive en la geometría real de la mina");
 s.addImage({ path: DIR + "plano_nv1640_pro.png", x: 0.75, y: 1.6, w: 6.0, h: 4.5 });
 s.addText("Plano del nivel NV1640 (block caving tipo El Teniente): galerías, cruceros, drawpoints y los 12 AP.",
   { x: 0.75, y: 6.15, w: 6.0, h: 0.6, fontFace: F_B, fontSize: 11, italic: true, color: GRIS, align: "center" });
@@ -164,6 +170,7 @@ s.addNotes("Inicio de los 7 minutos de resultados. Mostrar el plano real 15 s. R
 
 // ============ 7 · KPIs (oscura, números grandes) ============
 s = p.addSlide(); s.background = { color: OSCURO };
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
 s.addText("Resultados: todos los KPIs se cumplen", { x: 0.75, y: 0.6, w: 10, h: 0.8, fontFace: F_H, fontSize: 34, bold: true, color: BLANCO });
 s.addText("18 ejecuciones · 10 semillas independientes · media ± intervalo de confianza al 95 %",
   { x: 0.78, y: 1.38, w: 10, h: 0.45, fontFace: F_B, fontSize: 13, italic: true, color: CELESTE });
@@ -187,7 +194,8 @@ s.addNotes("La slide más importante: 60-90 segundos. Leer los tres primeros con
 
 // ============ 8 · COBERTURA / ROAMING ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "La red cubre todo el recorrido del vehículo"); tag(s, "Resultados · 7 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "La red cubre todo el recorrido del vehículo");
 s.addImage({ path: DIR + "grafico_rssi_asociado.png", x: 0.75, y: 1.65, w: 7.6, h: 4.55 });
 card(s, 8.6, 1.65, 3.95, 2.0, HIELO);
 s.addText("−72.1 dBm", { x: 8.6, y: 1.85, w: 3.95, h: 0.85, align: "center", fontFace: F_H, fontSize: 38, bold: true, color: VERDE });
@@ -205,7 +213,8 @@ s.addNotes("Anticipa la pregunta clásica del jurado ('¿y si pierde señal en l
 
 // ============ 9 · ESTRÉS + WMM (lámina multi-semilla) ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "La prioridad WMM protege lo crítico — con 10 semillas de evidencia"); tag(s, "Resultados · 7 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "La prioridad WMM protege lo crítico — con 10 semillas de evidencia");
 s.addImage({ path: DIR + "wmm_semillas.png", x: 0.55, y: 1.75, w: 10.1, h: 4.8 });
 card(s, 10.85, 1.75, 1.95, 4.8, HIELO);
 s.addText([
@@ -218,7 +227,8 @@ s.addNotes("60 segundos. Panel (a): la latencia de cada flujo con la dispersión
 
 // ============ 10 · PROFUNDIDAD TÉCNICA (802.11ac + antenas) ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "Del estándar físico a la antena: profundidad del análisis"); tag(s, "Resultados · 7 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "Del estándar físico a la antena: profundidad del análisis");
 s.addImage({ path: DIR + "wlan_802_11ac.png", x: 0.75, y: 1.7, w: 7.3, h: 3.1 });
 s.addText("Capa física 802.11ac real (WLAN Toolbox): PER vs SNR por esquema de modulación y constelación 256-QAM ecualizada tras el canal.",
   { x: 0.75, y: 4.85, w: 7.3, h: 0.6, fontFace: F_B, fontSize: 11, italic: true, color: GRIS, align: "center" });
@@ -234,7 +244,8 @@ s.addNotes("60 segundos. Este es el diferenciador técnico: no solo simulación 
 
 // ============ 10b · ANTENAS: PATRONES 3D DE DIRECTIVIDAD ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "Las antenas del diseño y sus patrones 3D"); tag(s, "Resultados · 7 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "Las antenas del diseño y sus patrones 3D");
 s.addImage({ path: DIR + "patron3d_hawk.png", x: 0.55, y: 1.7, w: 4.15, h: 3.35 });
 s.addImage({ path: DIR + "patron3d_cardinal.png", x: 4.85, y: 1.7, w: 4.15, h: 3.35 });
 s.addImage({ path: DIR + "patron3d_lhd.png", x: 9.15, y: 1.7, w: 3.65, h: 3.35 });
@@ -254,7 +265,8 @@ s.addNotes("40 segundos. Justificación de cada antena según datasheet Poynting
 
 // ============ 10c · VALIDACIÓN CRUZADA DEL CANAL (ray-tracing) ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "Validación cruzada del modelo de canal"); tag(s, "Resultados · 7 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "Validación cruzada del modelo de canal");
 s.addImage({ path: DIR + "raytracing_validacion.png", x: 0.75, y: 1.65, w: 8.0, h: 4.6 });
 card(s, 9.0, 1.65, 3.55, 2.25, HIELO);
 s.addText("Zona de concordancia", { x: 9.2, y: 1.82, w: 3.15, h: 0.4, fontFace: F_B, fontSize: 13, bold: true, color: VERDE });
@@ -270,7 +282,8 @@ s.addNotes("45 segundos — la slide que blinda el modelo ante el jurado. Justif
 
 // ============ 11 · IDONEIDAD ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "Una solución idónea en todas sus dimensiones"); tag(s, "Resultados · 7 min");
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
+titulo(s, "Una solución idónea en todas sus dimensiones");
 const DIM = [
   ["Idoneidad técnica", "Todos los KPIs cumplen con margen y respaldo estadístico de 10 semillas."],
   ["Idoneidad económica", "Inversión incremental sobre la infraestructura existente; despliegue gradual por frentes."],
@@ -290,6 +303,7 @@ s.addNotes("60 segundos. Recorrer las 4 dimensiones. En económica ser honesto: 
 
 // ============ 12 · REFLEXIÓN FINAL (oscura) ============
 s = p.addSlide(); s.background = { color: OSCURO };
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
 s.addText("Reflexión final", { x: 0.85, y: 0.75, w: 5, h: 0.5, fontFace: F_B, fontSize: 14, bold: true, color: CELESTE, charSpacing: 3 });
 s.addText("Diseñé una red que puede sacar a una persona de la zona de peligro dentro de una mina.",
   { x: 1.3, y: 1.7, w: 10.75, h: 1.7, align: "center", fontFace: F_H, fontSize: 31, bold: true, color: BLANCO, lineSpacingMultiple: 1.12 });
@@ -310,6 +324,7 @@ s.addNotes("El cierre vendedor que pide el profesor, desde la plataforma de éxi
 
 // ============ 13 · GRACIAS (oscura) ============
 s = p.addSlide(); s.background = { color: OSCURO };
+s.slideNumber = { x: 12.55, y: 7.05, fontFace: F_B, fontSize: 10, color: "8FA3BC" };
 s.addImage({ path: DIR + "mina_realista_3d.png", x: 8.0, y: 3.6, w: 5.33, h: 3.9, rounding: true, transparency: 25 });
 s.addText("Gracias", { x: 0.85, y: 2.6, w: 8, h: 1.2, fontFace: F_H, fontSize: 54, bold: true, color: BLANCO });
 s.addText("¿Preguntas?", { x: 0.88, y: 3.85, w: 8, h: 0.6, fontFace: F_B, fontSize: 20, color: CELESTE });
