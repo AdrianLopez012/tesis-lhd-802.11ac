@@ -20,13 +20,8 @@ function titulo(s, txt, color = AZUL) {
     fontSize: 34, color, bold: true });
 }
 function card(s, x, y, w, h, fill = HIELO) {
-  s.addShape(p.ShapeType.roundRect, { x, y, w, h, rectRadius: 0.09,
-    fill: { color: fill }, shadow: { type: "outer", color: "9AA7B8", blur: 6, offset: 2, angle: 90, opacity: 0.35 } });
-}
-function circulo(s, x, y, d, color, glifo) {
-  s.addShape(p.ShapeType.ellipse, { x, y, w: d, h: d, fill: { color } });
-  s.addText(glifo, { x, y: y - 0.02, w: d, h: d, align: "center", valign: "middle",
-    fontFace: F_B, fontSize: 16, color: BLANCO, bold: true, margin: 0 });
+  s.addShape(p.ShapeType.roundRect, { x, y, w, h, rectRadius: 0.03,
+    fill: { color: fill }, line: { color: "C7D3E2", width: 0.75 } });
 }
 
 // ============ 1 · CARÁTULA (oscura) ============
@@ -53,16 +48,15 @@ s.addImage({ path: DIR + "escena_mina_3d.png", x: 6.9, y: 1.5, w: 5.9, h: 4.4 })
 s.addText("Zona de producción NV1640 (Nexa Cerro Lindo): cobertura calculada, recorrido real del vehículo y patrón de la antena.",
   { x: 6.9, y: 6.0, w: 5.9, h: 0.65, fontFace: F_B, fontSize: 11, italic: true, color: GRIS, align: "center" });
 const QUE = [
-  ["🕹", "Teleoperar un cargador LHD desde superficie", "El operador sale de la zona de riesgo; el vehículo se conduce por vídeo en tiempo real, comandos y telemetría."],
-  ["📡", "Con una red IEEE 802.11ac diseñada para la mina", "12 puntos de acceso sobre un backbone de fibra, planificados sobre la geometría real de las galerías."],
-  ["✓", "Validada por simulación con rigor estadístico", "Modelo NS-3 sobre el trazado real: 18 ejecuciones, 10 semillas independientes, todos los KPIs cumplen."],
+  ["Teleoperar un cargador LHD desde superficie", "El operador sale de la zona de riesgo; el vehículo se conduce por vídeo en tiempo real, comandos y telemetría."],
+  ["Con una red IEEE 802.11ac diseñada para la mina", "12 puntos de acceso sobre un backbone de fibra, planificados sobre la geometría real de las galerías."],
+  ["Validada por simulación con rigor estadístico", "Modelo NS-3 sobre el trazado real: 18 ejecuciones, 10 semillas independientes, todos los KPIs cumplen."],
 ];
 QUE.forEach((q, i) => {
   const y = 1.6 + i * 1.62;
   card(s, 0.75, y, 5.8, 1.42, HIELO);
-  circulo(s, 1.0, y + 0.42, 0.56, AZUL, q[0]);
-  s.addText(q[1], { x: 1.75, y: y + 0.16, w: 4.7, h: 0.5, fontFace: F_B, fontSize: 14.5, bold: true, color: AZUL });
-  s.addText(q[2], { x: 1.75, y: y + 0.62, w: 4.7, h: 0.72, fontFace: F_B, fontSize: 11.5, color: INK, lineSpacingMultiple: 1.05 });
+  s.addText(q[0], { x: 1.05, y: y + 0.16, w: 5.25, h: 0.5, fontFace: F_B, fontSize: 14.5, bold: true, color: AZUL });
+  s.addText(q[1], { x: 1.05, y: y + 0.64, w: 5.25, h: 0.72, fontFace: F_B, fontSize: 11.5, color: INK, lineSpacingMultiple: 1.05 });
 });
 s.addNotes("Descripción breve obligatoria: qué es y qué logra, sin entrar a detalles. 40 segundos. 'Esta tesis diseña y valida la red que permite sacar al operador del frente de riesgo sin detener la producción.'");
 
@@ -70,11 +64,9 @@ s.addNotes("Descripción breve obligatoria: qué es y qué logra, sin entrar a d
 s = p.addSlide(); s.background = { color: BLANCO };
 titulo(s, "¿Por qué esta tesis?"); tag(s, "Motivación · 3 min");
 card(s, 0.75, 1.6, 5.9, 2.5, HIELO);
-s.addText("“", { x: 0.9, y: 1.5, w: 0.8, h: 0.9, fontFace: F_H, fontSize: 60, color: CELESTE, bold: true });
-s.addText("La minería está cerca de mi historia personal. Sé lo que significa que alguien entre a una labor subterránea y que su familia espere que vuelva.",
-  { x: 1.55, y: 1.85, w: 4.9, h: 1.5, fontFace: F_H, fontSize: 15.5, italic: true, color: INK, lineSpacingMultiple: 1.15 });
-s.addText("— por eso el problema que resuelvo no es abstracto",
-  { x: 1.55, y: 3.4, w: 4.9, h: 0.5, fontFace: F_B, fontSize: 12, color: GRIS, italic: true });
+s.addText("Una motivación con raíz personal", { x: 1.05, y: 1.78, w: 5.3, h: 0.42, fontFace: F_B, fontSize: 14, bold: true, color: AZUL });
+s.addText("Nací en una tierra donde la minería marca la vida de las familias. Crecí sabiendo lo que significa que alguien entre a una labor subterránea — y esta carrera me dio la forma de devolver algo: usar las telecomunicaciones para cuidar a esas personas.",
+  { x: 1.05, y: 2.24, w: 5.35, h: 1.7, fontFace: F_H, fontSize: 13.5, italic: true, color: INK, lineSpacingMultiple: 1.12 });
 card(s, 0.75, 4.35, 5.9, 2.3, "FDF3E7");
 s.addText("El dato que no se puede ignorar", { x: 1.05, y: 4.55, w: 5.3, h: 0.45, fontFace: F_B, fontSize: 14, bold: true, color: AMBAR });
 s.addText("Cada año se registran víctimas mortales en la minería peruana; una parte importante ocurre en el frente de operación, justo donde trabaja el operador del LHD (OSINERGMIN).",
@@ -111,8 +103,8 @@ OBJ.forEach((o, i) => {
   const col = i % 2, fila = Math.floor(i / 2);
   const x = 0.75 + col * 6.05, y = 3.15 + fila * 1.18;
   card(s, x, y, 5.8, 1.0, HIELO);
-  circulo(s, x + 0.22, y + 0.22, 0.56, CELESTE, o[0]);
-  s.addText(o[1], { x: x + 0.95, y: y + 0.1, w: 4.75, h: 0.82, fontFace: F_B, fontSize: 12.5, color: INK, valign: "middle", lineSpacingMultiple: 1.02 });
+  s.addText(o[0] + ".", { x: x + 0.25, y: y + 0.1, w: 0.55, h: 0.82, fontFace: F_H, fontSize: 20, bold: true, color: AZUL, valign: "middle" });
+  s.addText(o[1], { x: x + 0.85, y: y + 0.1, w: 4.8, h: 0.82, fontFace: F_B, fontSize: 12.5, color: INK, valign: "middle", lineSpacingMultiple: 1.02 });
 });
 s.addNotes("3 MINUTOS. Leer el objetivo general con énfasis en 'evidencia verificable'. Los 6 específicos en 20 segundos cada uno máximo, conectándolos: canal → arquitectura → radio → QoS → validación → idoneidad. Son la columna vertebral de los capítulos.");
 
@@ -120,19 +112,19 @@ s.addNotes("3 MINUTOS. Leer el objetivo general con énfasis en 'evidencia verif
 s = p.addSlide(); s.background = { color: BLANCO };
 titulo(s, "Metodología: Design Thinking aplicado a ingeniería"); tag(s, "Metodología · 5 min");
 const DT = [
-  ["Empatizar", "El operador y su exposición al riesgo en el frente", "E64A19"],
-  ["Definir", "Requisitos y KPIs medibles por flujo (vídeo, mando, telemetría)", "F57C00"],
-  ["Idear", "Comparación multicriterio de tecnologías (RSL método Kitchenham)", "FBC02D"],
-  ["Prototipar", "Modelo NS-3 sobre la geometría real + MATLAB", "7CB342"],
-  ["Validar", "Contraste con site survey TamoGraph + batería multi-semilla", "1E7A46"],
+  ["Empatizar", "El operador y su exposición al riesgo en el frente"],
+  ["Definir", "Requisitos y KPIs medibles por flujo (vídeo, mando, telemetría)"],
+  ["Idear", "Comparación multicriterio de tecnologías (RSL método Kitchenham)"],
+  ["Prototipar", "Modelo NS-3 sobre la geometría real + MATLAB"],
+  ["Validar", "Contraste con site survey TamoGraph + batería multi-semilla"],
 ];
 DT.forEach((d, i) => {
   const x = 0.75 + i * 2.47;
   card(s, x, 1.7, 2.27, 2.6, HIELO);
-  circulo(s, x + 0.83, 1.95, 0.62, d[2], String(i + 1));
-  s.addText(d[0], { x, y: 2.68, w: 2.27, h: 0.42, align: "center", fontFace: F_B, fontSize: 14.5, bold: true, color: AZUL });
-  s.addText(d[1], { x: x + 0.14, y: 3.1, w: 2.0, h: 1.1, align: "center", fontFace: F_B, fontSize: 10.3, color: INK, lineSpacingMultiple: 1.03 });
-  if (i < 4) s.addText("→", { x: x + 2.24, y: 2.55, w: 0.3, h: 0.5, fontFace: F_B, fontSize: 20, color: CELESTE, bold: true, margin: 0, align: "center" });
+  s.addText(String(i + 1), { x, y: 1.92, w: 2.27, h: 0.6, align: "center", fontFace: F_H, fontSize: 26, bold: true, color: CELESTE });
+  s.addText(d[0], { x, y: 2.62, w: 2.27, h: 0.42, align: "center", fontFace: F_B, fontSize: 14.5, bold: true, color: AZUL });
+  s.addText(d[1], { x: x + 0.14, y: 3.06, w: 2.0, h: 1.15, align: "center", fontFace: F_B, fontSize: 10.3, color: INK, lineSpacingMultiple: 1.03 });
+  if (i < 4) s.addText("›", { x: x + 2.2, y: 2.5, w: 0.34, h: 0.6, fontFace: F_H, fontSize: 22, color: GRIS, margin: 0, align: "center" });
 });
 card(s, 0.75, 4.75, 5.85, 1.95, OSCURO);
 s.addText("Herramientas", { x: 1.05, y: 4.95, w: 5, h: 0.4, fontFace: F_B, fontSize: 13, bold: true, color: CELESTE });
@@ -161,7 +153,7 @@ try {
 } catch (e) {
   s.addImage({ path: DIR + "mina_realista_3d.png", x: 7.15, y: 1.6, w: 5.4, h: 3.05 });
 }
-s.addText("▶ Recorrido del LHD teleoperado (animación 3D con datos reales de la simulación: AP servidor y RSSI en vivo)",
+s.addText("Video: recorrido del LHD teleoperado — animación 3D con datos reales de la simulación (AP servidor y RSSI en vivo)",
   { x: 7.15, y: 4.75, w: 5.4, h: 0.6, fontFace: F_B, fontSize: 11, italic: true, color: GRIS, align: "center" });
 card(s, 7.15, 5.5, 5.4, 1.15, HIELO);
 s.addText([
@@ -211,19 +203,18 @@ s.addText("RSSI del enlace asociado durante el recorrido — 10 semillas.",
   { x: 0.75, y: 6.3, w: 7.6, h: 0.5, fontFace: F_B, fontSize: 11, italic: true, color: GRIS, align: "center" });
 s.addNotes("Anticipa la pregunta clásica del jurado ('¿y si pierde señal en la curva?'). La línea azul nunca baja de -72.1 dBm: margen de 9.9 dB. Explicar el roaming estable: make-before-break, igual que el equipo real. Traspaso peor caso 0.91 ms contra 150 permitidos.");
 
-// ============ 9 · ESTRÉS ============
+// ============ 9 · ESTRÉS + WMM (lámina multi-semilla) ============
 s = p.addSlide(); s.background = { color: BLANCO };
-titulo(s, "El diseño resiste condiciones de estrés"); tag(s, "Resultados · 7 min");
-s.addImage({ path: DIR + "resultados_escenarios.png", x: 0.75, y: 1.6, w: 8.15, h: 4.9 });
-card(s, 9.15, 1.6, 3.4, 2.3, HIELO);
-s.addText("Vídeo a 50 Mbps", { x: 9.35, y: 1.78, w: 3.0, h: 0.4, fontFace: F_B, fontSize: 13.5, bold: true, color: AZUL });
-s.addText("(+25 % sobre lo nominal): la red mantiene TODOS los criterios; la presión se ve en latencia (OWD ×2.3), no en pérdidas.",
-  { x: 9.35, y: 2.2, w: 3.05, h: 1.6, fontFace: F_B, fontSize: 11.5, color: INK, lineSpacingMultiple: 1.1 });
-card(s, 9.15, 4.1, 3.4, 2.4, HIELO);
-s.addText("Velocidad a 4 m/s", { x: 9.35, y: 4.28, w: 3.0, h: 0.4, fontFace: F_B, fontSize: 13.5, bold: true, color: AZUL });
-s.addText("(el doble de la operación): sin degradación de KPIs. Hay margen de dimensionamiento verificable, no un diseño al límite.",
-  { x: 9.35, y: 4.7, w: 3.05, h: 1.7, fontFace: F_B, fontSize: 11.5, color: INK, lineSpacingMultiple: 1.1 });
-s.addNotes("45 segundos. Mensaje: no solo cumple en condiciones nominales — aguanta 25% más de vídeo y el doble de velocidad. La priorización WMM protege el tráfico crítico: bajo estrés sube la latencia (dentro del límite), no la pérdida.");
+titulo(s, "La prioridad WMM protege lo crítico — con 10 semillas de evidencia"); tag(s, "Resultados · 7 min");
+s.addImage({ path: DIR + "wmm_semillas.png", x: 0.55, y: 1.75, w: 10.1, h: 4.8 });
+card(s, 10.85, 1.75, 1.95, 4.8, HIELO);
+s.addText([
+  { text: "La lectura\n\n", options: { bold: true, color: AZUL, fontSize: 12.5 } },
+  { text: "Cajas diminutas = resultados estables entre semillas.\n\n", options: { color: INK, fontSize: 10.5 } },
+  { text: "Bajo estrés, los comandos suben a 6.8 ms — lejos del límite de 20.\n\n", options: { color: INK, fontSize: 10.5 } },
+  { text: "La presión va a la latencia, nunca a las pérdidas.", options: { bold: true, color: VERDE, fontSize: 10.5 } },
+], { x: 11.0, y: 1.95, w: 1.68, h: 4.4, fontFace: F_B, lineSpacingMultiple: 1.08 });
+s.addNotes("60 segundos. Panel (a): la latencia de cada flujo con la dispersión de las 10 semillas — las cajas son diminutas: el resultado es estable, no una corrida afortunada. Comandos y telemetría ~3 ms, vídeo 36 ms. Panel (b): los 4 escenarios — bajo estrés de vídeo los comandos suben de 3.0 a 6.8 ms (×2.3) pero NUNCA se acercan al límite de 20: la clase AC_VO los protege. Pregunta anticipada '¿por qué la telemetría no tiene prioridad?': es tolerante al retardo (datos de estado); lo crítico es el mando. Y aun en AC_BE mide 3.08 ms — la prioridad es un seguro para cuando hay presión.");
 
 // ============ 10 · PROFUNDIDAD TÉCNICA (802.11ac + antenas) ============
 s = p.addSlide(); s.background = { color: BLANCO };
@@ -281,17 +272,16 @@ s.addNotes("45 segundos — la slide que blinda el modelo ante el jurado. Justif
 s = p.addSlide(); s.background = { color: BLANCO };
 titulo(s, "Una solución idónea en todas sus dimensiones"); tag(s, "Resultados · 7 min");
 const DIM = [
-  ["✓", VERDE, "Técnica", "Todos los KPIs cumplen con margen y respaldo estadístico de 10 semillas."],
-  ["$", AZUL, "Económica", "Inversión incremental sobre la infraestructura existente; despliegue gradual por frentes."],
-  ["§", CELESTE, "Regulatoria", "Banda 5 GHz de uso libre (MTC); alineada al reglamento de seguridad minera (D.S. 024-2016-EM)."],
-  ["♥", AMBAR, "Ética y social", "Retira al trabajador de la zona de riesgo; gestión responsable del cambio con el personal."],
+  ["Idoneidad técnica", "Todos los KPIs cumplen con margen y respaldo estadístico de 10 semillas."],
+  ["Idoneidad económica", "Inversión incremental sobre la infraestructura existente; despliegue gradual por frentes."],
+  ["Idoneidad regulatoria", "Banda 5 GHz de uso libre (MTC); alineada al reglamento de seguridad minera (D.S. 024-2016-EM)."],
+  ["Dimensión ética y social", "Retira al trabajador de la zona de riesgo; gestión responsable del cambio con el personal."],
 ];
 DIM.forEach((d1, i) => {
   const y = 1.6 + i * 1.28;
   card(s, 0.75, y, 6.1, 1.1, HIELO);
-  circulo(s, 1.0, y + 0.27, 0.56, d1[1], d1[0]);
-  s.addText(d1[2], { x: 1.75, y: y + 0.1, w: 4.9, h: 0.4, fontFace: F_B, fontSize: 13.5, bold: true, color: AZUL });
-  s.addText(d1[3], { x: 1.75, y: y + 0.5, w: 4.95, h: 0.55, fontFace: F_B, fontSize: 10.8, color: INK, lineSpacingMultiple: 1.0 });
+  s.addText(d1[0], { x: 1.05, y: y + 0.12, w: 5.5, h: 0.4, fontFace: F_B, fontSize: 13.5, bold: true, color: AZUL });
+  s.addText(d1[1], { x: 1.05, y: y + 0.52, w: 5.55, h: 0.55, fontFace: F_B, fontSize: 10.8, color: INK, lineSpacingMultiple: 1.0 });
 });
 s.addImage({ path: DIR + "fig_capex_opex.png", x: 7.25, y: 1.7, w: 5.35, h: 4.35 });
 s.addText("Estructura económica: inversión, operación y mecanismos de retorno.",
