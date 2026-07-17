@@ -52,7 +52,7 @@ s.addText("Zona de producción NV1640 (Nexa Cerro Lindo): cobertura calculada, r
 const QUE = [
   ["Teleoperar un cargador LHD desde superficie", "El operador sale de la zona de riesgo; el vehículo se conduce por vídeo en tiempo real, comandos y telemetría."],
   ["Con una red IEEE 802.11ac diseñada para la mina", "12 puntos de acceso sobre un backbone de fibra, planificados sobre la geometría real de las galerías."],
-  ["Validada por simulación con rigor estadístico", "Modelo NS-3 sobre el trazado real: 18 ejecuciones, 10 semillas independientes, todos los KPIs cumplen."],
+  ["Validada por simulación con rigor estadístico", "Modelo NS-3 sobre el trazado real: 18 ejecuciones, 10 semillas independientes, todos los KPIs se cumplen."],
 ];
 QUE.forEach((q, i) => {
   const y = 1.6 + i * 1.62;
