@@ -416,7 +416,7 @@ memoria, este documento (TRASPASO_CONTEXTO.md) contiene todo lo esencial de ella
 |---|---|---|
 | Monografía (tesis_v2.docx) | 16 jul | CORREGIDA Y APROBADA por el profesor ("Excelente trabajo") |
 | Presentación de sustentación | 16 jul | TERMINADA (16 slides) — `Sustentacion_LopezPascual_TdT2.pptx` |
-| Póster XpoSTEM | 19 jul | HECHO (`poster_xpostem.pptx`, A1, 2 columnas, secciones oficiales) |
+| Póster XpoSTEM | 19 jul | REHECHO 18-jul sobre la PLANTILLA AUTORIZADA, en inglés: `fase4/presentacion/Poster_LopezPascual_XpoSTEM.pdf` (A1, subir a PAIDEIA); fuente `poster_xpostem_plantilla.docx` + `gen_poster_plantilla.py`; el pptx anterior queda como histórico |
 | Paper | — | **NO APLICA** (el usuario confirmó: solo póster; ignorar menciones previas) |
 | Sustentación | 20-23 jul | Pendiente: ENSAYO del usuario (18 min + banco de preguntas) |
 | ExpoSTEM (asistencia obligatoria) | 21 jul, 16-20h explanada FCI | Pendiente |
