@@ -106,6 +106,41 @@ def tramo(idx):
 for i in range(len(segs)):
     tramo(i)
 
+# ---------- TAPAS en extremos libres (modelo estanco: los rayos rebotan adentro) ----------
+def extremo_libre(E, propio):
+    """un extremo es libre si no toca ningún otro segmento"""
+    for j,(A,B,wj,_) in enumerate(segs):
+        if j == propio: continue
+        u = B-A; L = np.linalg.norm(u); u = u/L
+        t = min(max(float(np.dot(E-A,u)), 0.0), L)
+        Q = A + u*t
+        if np.hypot(*(E-Q)) <= wj/2 + 0.4:
+            return False
+    return True
+
+n_tapas = 0
+for i,(P1,P2,w,_) in enumerate(segs):
+    d = P2-P1; L = np.linalg.norm(d); u = d/L
+    n = np.array([-u[1], u[0]]); r = w/2
+    for (E, sgn) in ((P1,+1),(P2,-1)):
+        if not extremo_libre(E, i): continue
+        # tapa: rectángulo de pared + abanico del arco (perfil herradura completo)
+        A0 = (E[0]-n[0]*r, E[1]-n[1]*r, 0.0)
+        A1 = (E[0]+n[0]*r, E[1]+n[1]*r, 0.0)
+        B1 = (E[0]+n[0]*r, E[1]+n[1]*r, H_WALL)
+        B0 = (E[0]-n[0]*r, E[1]-n[1]*r, H_WALL)
+        quad(A0, A1, B1, B0)
+        apice = (E[0], E[1], H_WALL)
+        for kk in range(NARC):
+            th0, th1 = np.pi*kk/NARC, np.pi*(kk+1)/NARC
+            o0, z0 = -r*np.cos(th0), H_WALL + r*np.sin(th0)
+            o1, z1 = -r*np.cos(th1), H_WALL + r*np.sin(th1)
+            v0 = (E[0]+n[0]*o0, E[1]+n[1]*o0, z0)
+            v1 = (E[0]+n[0]*o1, E[1]+n[1]*o1, z1)
+            tri(v0, v1, apice)
+        n_tapas += 1
+print(f"tapas en extremos libres: {n_tapas}")
+
 # drawpoints: marca piramidal
 for (x,y) in D.DRAWPOINTS:
     s=1.3

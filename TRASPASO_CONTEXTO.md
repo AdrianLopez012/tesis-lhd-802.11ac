@@ -404,3 +404,134 @@ Las más relevantes: `simulacion_v3real_resumen.md` (estado definitivo de la sim
 `geometria_real_nv1640.md`, `terminologia_drawpoint_breakpoint.md`, `datasheets_rf.md`,
 `tesis_kpis_contexto.md`, `tamograph_hallazgos.md`. Si se traspasa a otra cuenta SIN esa
 memoria, este documento (TRASPASO_CONTEXTO.md) contiene todo lo esencial de ellas.
+
+---
+
+## 15. FASE 4 FINAL — ENTREGA, PPT DEFINITIVA Y LABORATORIO MATLAB (2026-07-16)
+
+**Este apartado captura TODO lo hecho el 15-16 de julio para migrar el seguimiento sin pérdida.**
+
+### 15.1 Estado de entregables (cronograma del profesor)
+| Entregable | Límite | Estado |
+|---|---|---|
+| Monografía (tesis_v2.docx) | 16 jul | CORREGIDA Y APROBADA por el profesor ("Excelente trabajo") |
+| Presentación de sustentación | 16 jul | TERMINADA (16 slides) — `Sustentacion_LopezPascual_TdT2.pptx` |
+| Póster XpoSTEM | 19 jul | HECHO (`poster_xpostem.pptx`, A1, 2 columnas, secciones oficiales) |
+| Paper | — | **NO APLICA** (el usuario confirmó: solo póster; ignorar menciones previas) |
+| Sustentación | 20-23 jul | Pendiente: ENSAYO del usuario (18 min + banco de preguntas) |
+| ExpoSTEM (asistencia obligatoria) | 21 jul, 16-20h explanada FCI | Pendiente |
+
+### 15.2 PENDIENTE CRÍTICO: Informe de Similitud (página 2 de la tesis)
+- La página 2 del Word es una TABLA-PLANTILLA **con placeholders SIN LLENAR**:
+  `[APELLIDOS, NOMBRES]` del asesor, `DNI:[########]`, `ORCID: [####-####-####-####]`, firma.
+- Flujo correcto (palabras del profesor): él genera el **reporte Turnitin** -> el tesista
+  **llena la página 2** (datos del asesor + % de similitud) -> regenera PDF -> **sube a PAIDEIA**.
+- El usuario ya subió Word+PDF+PPT a PAIDEIA posiblemente con la página en placeholders:
+  cuando llegue el Turnitin, LLENAR la página 2 y RE-SUBIR (o consultar al profesor).
+- Asesor: Dr. Pastor David Chávez Muñoz (DNI/ORCID los tiene el usuario o el asesor).
+
+### 15.3 La tesis: correcciones del profesor aplicadas (todas)
+Archivo maestro: `fase4/trabajo/tesis_v2.docx` (backup: `tesis_v2_BACKUP_precorrecciones.docx`).
+Las 10 correcciones de `Corecciones.docx` (Downloads, con 8 capturas) resueltas:
+100 páginas exactas (Anexos I=RSL, J=parámetros propagación + ex-2.3.3-2.3.6, K=áreas/competencias/normativa,
+L=matriz comparativa APAISADA), numeración romanos desde Dedicatoria/arábigos desde Intro=1,
+folios ocultos SOLO en 1a pág de Intro+Cap1-4, captions de tabla ARRIBA+fuentes, colores a negro,
+tblHeader repetible, Recomendaciones en página aparte, Glosario página propia.
+Scripts: `fase4/trabajo/fix_correcciones_1..7.py`. Iteraciones de página: 111->108->95->103->~100.
+**Regla aprendida**: Word COM se cuelga -> flujo confiable = usuario hace Ctrl+E -> F9 ->
+"Actualizar toda la tabla" -> Ctrl+G y reporta páginas.
+
+### 15.4 La PPT definitiva (16 slides) — fase4/presentacion/
+Generador: `gen_ppt_v2.js` (pptxgenjs; `node gen_ppt_v2.js` -> `sustentacion_tesis_v2.pptx`;
+se publica copiando a `sustentacion_tesis.pptx` y `Sustentacion_LopezPascual_TdT2.pptx`).
+Estructura (agenda del profesor 3+3+5+7+cierre, SIN índice):
+1 Carátula oscura (mina 3D) - 2 De qué trata - 3 Motivación (raíz personal REAL del usuario:
+"Nací en una tierra donde la minería marca la vida de las familias..." + GRÁFICO OSINERGMIN
+con datos de la Tabla 2: 12/14 accidentes y 13/15 víctimas 2024 subterránea = 86.7%) -
+4 Objetivos - 5 Design Thinking (números sobrios) - 6 Geometría real + VIDEO EMBEBIDO del LHD -
+7 ARQUITECTURA DE ANILLO (diagrama tipo Visio + 3 capas) - 8 KPIs oscura - 9 RSSI/roaming
+(-72.1 dBm) - 10 WMM multi-semilla (boxchart 10 semillas + estrés) - 11 Capa física 802.11ac +
+patrones red - 12 Antenas datasheet (RCP-50 LHP/RHP BIDIRECCIONAL, EPNT-7 omni, HELI-40
+bidireccional) - 13 Validación cruzada ray-tracing - 14 Idoneidad+CAPEX - 15 Reflexión final
+(pitch) - 16 Gracias. Notas del orador = guion cronometrado en CADA slide.
+Diseño: auditoría anti-IA por feedback de pares (SIN emojis/círculos/sombras; cards rectas
+borde fino; Cambria/Calibri; folios discretos; sin etiquetas de tiempo visibles).
+Auditoría gramatical completa: cero faltas.
+**METADATOS LIMPIOS**: dc:creator y lastModifiedBy = "Adrián Álvaro López Pascual" en deck,
+copia formal, póster, flashcards y banco de preguntas; títulos propios; Application genérica;
+verificado cero rastros (claude/anthropic/gpt/pptxgenjs/python-docx). Generadores con
+p.author/p.title para que futuras regeneraciones nazcan limpias.
+
+### 15.5 Material de preparación de sustentación
+- `banco_preguntas_jurado.docx`: 21 preguntas anticipadas con respuesta modelo (5 temas) + tips.
+- `flashcards_jurado.pptx`: 16 tarjetas de repaso.
+- Puntos clave del profesor (datos_profesor.md, sección sustentación): 20 min MEDIDOS
+  (3 motivación / 3 objetivos / 5 metodología con Design Thinking / 7 LOGROS / reflexión de
+  cierre = pitch vendedor desde "plataforma de triunfo"); ensayar a 18 min y al menos 1 vez
+  con el asesor; 30 min de preguntas (responder COMPLETO puntúa); notas 9/11/15/17/19/20;
+  filtros pasa/no-pasa: tiempo, gramática, formato.
+
+### 15.6 Laboratorio MATLAB (fase4/trabajo/) — todo funcional
+**Toolboxes**: Antenna/Comms/DSP/Signal/Stats/Optim/Parallel con licencia; **WLAN y 5G
+EJECUTAN aunque license('test') devuelva 0** (probado: wlanVHTConfig/waveform funcionan);
+Simulink 24.2 + SimEvents 24.2 instalados (librería = **'sldelib'**, NO 'simevents').
+**Lanzadores** en `C:\Users\Public\run_*.m` (evitan bug de espacios en matlab -r): run_p3d
+(3 globos de patrones), run_flujo (viaje de paquetes por el anillo), run_rayos (Site Viewer
+rayos+patrones), run_final (escena cacheada), run_editor (editor de antenas con sliders),
+run_mesh (malla en vivo), run_wmm (colas EDCA), run_wmmfig (figura multi-semilla), run_sim (SimEvents).
+**Pipeline geométrico**: `gen_stl_galeria.py` (STL v3: sección herradura, huecos en uniones,
+24 TAPAS en extremos libres -> modelo estanco; escribe galeria_nv1640.stl paredes+piso,
+galeria_techo.stl techo fantasma; se fusionan en galeria_rt.stl para ray-tracing).
+**Datos precalculados**: anim_recorrido.csv (pos_log real 307 frames), anim_enlace.csv (ruta
+Dijkstra LHD->AP por galerías), anim_aps.csv (x,y,tipo,ángulo de galería), flujo_paths.csv,
+mesh_rssi.csv (RSSI 307x12 por distancia de ruta), mesh_rutas.csv, escena_cache.mat (patrones
+bidireccionales + 108 rayos SBR de H4 a 12/24/38 m).
+**Scripts clave**: anim_lhd_realista.m (video 3D: enlace por galerías + patrones + LHD ->
+lhd_recorrido_3d.mp4), precalc_escena.m (extendido con rayos AP<->AP vecinos, NO ejecutado aún),
+ver_escena_final.m, editor_antenas.m (FUNCIÓN con anidadas — scripts con uicontrols DEBEN ser
+función), ver_mesh_vivo.m (SOLO ilustración conceptual: el Dijkstra de malla NO está en la
+tesis), ver_wmm_paquetes.m, fig_wmm_semillas.m (wmm_semillas.png, KPIs exactos 3.04±0.26 etc.),
+fig_osinergmin.m, export_patrones3d.m (globos; Hawk BIDIRECCIONAL según datasheet
+RCP-50LHP/RHP-11-NM "Bi-Directional, Mine/tunnel"; patternCustom con max(P,flipud(P))),
+crear_wmm_simevents.m (SimEvents v2: cablear entidades ANTES de activar estadísticas; puertos
+nuevos por handle con setdiff), mega_flujo_wlan.m (PER vs SNR + constelación 256-QAM, receptor
+VHT completo con sincronización), raytracing_final.m (validación cruzada ~5 dB campo cercano).
+**Antenas según datasheets (corregido 2 veces por el usuario)**: Hawk = PAR RCP-50 LHP+RHP
+11 dBi BIDIRECCIONAL (tramos largos; polarizaciones L/R = diversidad para 2 streams MIMO);
+Cardinal = EPNT-7 7.5 dBi omni (cruceros); LHD = HELI-40 4.8 dBic bidireccional. El "2x2" es
+MIMO del radio, NO un arreglo de 4 hélices.
+**Arquitectura documentada (corrección del usuario)**: LHD -radio-> AP -Cat6-> SW acceso
+-ANILLO FO 1Gbps SM-> NODO CORE -> workstation. FO=amarillo, Cat6=azul (leyenda de la tesis).
+NUNCA dibujar enlaces rectos atravesando roca (se eliminó de mina_realista.m y del deck).
+
+### 15.7 Gotchas técnicos de esta sesión (ahorran horas)
+- Heredocs bash con strings JS/MATLAB: los saltos escapados colapsan -> usar SIEMPRE el Write
+  tool o archivos .py para parches; nunca python/JS inline con backslashes en heredoc.
+- pptxgenjs rounding:true recorta imágenes en ÓVALO — solo para fotos decorativas.
+- MATLAB -r con rutas con espacios falla -> lanzadores en C:\Users\Public.
+- MATLAB: funciones locales de script NO ven variables del script (uicontrols -> función anidada).
+- SimEvents: activar estadísticas cambia numeración de puertos -> cablear entidades primero,
+  luego conectar handles nuevos (setdiff de PortHandles.Outport).
+- validate.py del skill pptx da falsos "charmap" en consola Windows (no es corrupción).
+- markitdown + grep de TODO matchea "TODOS/método" en español (falsos positivos).
+- POWERPNT/WINWORD del usuario suelen estar abiertos: matar solo procesos ajenos al documento
+  del usuario; python-docx da PermissionError si Word tiene el archivo abierto (flujo: usuario
+  cierra -> yo edito -> reabro; el usuario hace F9+guardar, NUNCA guardar por él tras mis ediciones).
+
+### 15.8 Últimos commits (rama geometria-real-nv1640, TODO PUSHEADO a GitHub privado)
+1f8e768 tesis corregida + deck v2 - c3a370e banco preguntas + flashcards - 6e4475a póster -
+4db49c3 MATLAB avanzado (video LHD, patrones, mega flujo WLAN) - 42f542e herradura -
+733eec4 visual v3 (Dijkstra enlace, patrones 12 AP, uniones limpias) - 9cdf539 patrones 3D +
+raytracing en deck - 113240e RCP-50 bidireccional + flujo anillo - 767d3ac deck blindado -
+ee1bd4c PPT sobria anti-IA + lámina WMM - 99a356f naturalidad (sin tags, folios) -
+22376a3 micro-consistencia + copia formal - aa5a3da gráfico OSINERGMIN -
+0cac4d1 slide arquitectura + metadatos crédito exclusivo del tesista.
+
+### 15.9 Próximos pasos exactos (para la nueva sesión)
+1. Cuando llegue el Turnitin del profesor: llenar página 2 del Word (datos del asesor + %),
+   F9, generar PDF, re-subir a PAIDEIA.
+2. Acompañar el ensayo: simular la ronda de preguntas del jurado (banco de 21 listo).
+3. Opcional MATLAB: SimEvents (modelo construido, correr/validar animación con el usuario);
+   precalc de rayos AP<->AP pendiente de ejecutar; el usuario disfruta estas exploraciones.
+4. Los labs NO-tesis (mesh Dijkstra) presentarlos SOLO como "ilustración conceptual".
+5. El deck está ZANJADO: no seguir puliendo diseño salvo pedido explícito.

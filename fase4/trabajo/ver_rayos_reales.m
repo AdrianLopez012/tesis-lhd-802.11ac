@@ -9,16 +9,18 @@ f0 = 5e9;
 fprintf('[1] Escena: galería 3D real (paredes+techo herradura, %s)\n', 'galeria_rt.stl');
 viewer = siteviewer('SceneModel', [TRB 'galeria_rt.stl'], 'Transparency', 0.55);
 
-fprintf('[2] Transmisor: AP H4 con su antena REAL (hélice tipo RCP-50, 9 vueltas),\n');
-fprintf('    inclinada 90° para radiar A LO LARGO de la galería (como se instala).\n');
+fprintf('[2] Transmisor: AP H4 con el PAR RCP-50 LHP/RHP del datasheet:\n');
+fprintf('    BIDIRECCIONAL — dos hélices opuestas radiando en AMBOS sentidos de la galería.\n');
 k = 4;                                        % H4
 angH4 = AP(k,4);                              % dirección de su galería
-hawk = helix('Radius',0.0091,'Width',0.0016,'Turns',9,'Spacing',0.0115, ...
-    'Tilt',90,'TiltAxis',[ -sin(angH4) cos(angH4) 0 ]);
+ejeGal = [ -sin(angH4) cos(angH4) 0 ];
+h1 = helix('Radius',0.0091,'Width',0.0016,'Turns',9,'Spacing',0.0115,'Tilt', 90,'TiltAxis',ejeGal);
+h2 = helix('Radius',0.0091,'Width',0.0016,'Turns',9,'Spacing',0.0115,'Tilt',-90,'TiltAxis',ejeGal);
+hawkBi = conformalArray('Element',{h1,h2},'ElementPosition',[0 0 0.03; 0 0 -0.03]);
 tx = txsite('cartesian','AntennaPosition',[AP(k,1); AP(k,2); 2.5], ...
-    'Antenna',hawk,'TransmitterFrequency',f0,'TransmitterPower',1.0);
+    'Antenna',hawkBi,'TransmitterFrequency',f0,'TransmitterPower',1.0);
 show(tx);
-pattern(tx, f0, 'Size', 10, 'Transparency', 0.45);   % EL PATRÓN REAL EN LA ESCENA
+pattern(tx, f0, 'Size', 10, 'Transparency', 0.45);   % PATRÓN BIDIRECCIONAL EN LA ESCENA
 
 fprintf('[3] Receptores: 3 posiciones del LHD a lo largo de la galería de H4\n');
 fprintf('    (12, 24 y 38 m) con antena HELI-40.\n');

@@ -38,7 +38,38 @@ for d = [12 24 38]
     fprintf('  d=%d m: %d rayos\n', d, numel(rr{1}));
 end
 
-fprintf('3/3 guardando cache...\n');
-save([TRB 'escena_cache.mat'], 'pHawkBi','pCard','pLHDBi','az','el','rayos','k','angH4');
+fprintf('3/4 rayos AP<->AP (enlaces de malla entre vecinos)...\n');
+NA = size(AP,1);
+D2 = squareform(pdist(AP(:,1:2)));
+rayosAP = {};
+hechos = zeros(NA);
+for a = 1:NA
+    [~, orden] = sort(D2(a,:));
+    vecinos = orden(2:3);                      % los 2 AP más cercanos
+    for b = vecinos
+        if hechos(a,b) || hechos(b,a), continue; end
+        hechos(a,b) = 1;
+        txA = txsite('cartesian','AntennaPosition',[AP(a,1); AP(a,2); 2.5],'TransmitterFrequency',f0);
+        rxB = rxsite('cartesian','AntennaPosition',[AP(b,1); AP(b,2); 2.5]);
+        rr = raytrace(txA, rxB, pm, 'Map', [TRB 'galeria_rt.stl']);
+        nr = 0;
+        if ~isempty(rr{1})
+            for q2 = 1:numel(rr{1})
+                R = rr{1}(q2);
+                pts = [AP(a,1) AP(a,2) 2.5];
+                for it = 1:numel(R.Interactions)
+                    pts = [pts; R.Interactions(it).Location(:)'];
+                end
+                pts = [pts; AP(b,1) AP(b,2) 2.5];
+                rayosAP{end+1} = struct('pts',pts,'pl',R.PathLoss,'a',a,'b',b);
+            end
+            nr = numel(rr{1});
+        end
+        fprintf('  %d<->%d (%.0f m): %d rayos\n', a, b, D2(a,b), nr);
+    end
+end
+
+fprintf('4/4 guardando cache...\n');
+save([TRB 'escena_cache.mat'], 'pHawkBi','pCard','pLHDBi','az','el','rayos','rayosAP','k','angH4');
 disp('PRECALC OK');
 exit;
