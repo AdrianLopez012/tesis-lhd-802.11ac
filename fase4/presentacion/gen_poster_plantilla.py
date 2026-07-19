@@ -46,9 +46,9 @@ def set_extents(xml, marker, w_cm, ratio):
     blk = re.sub(r'(<a:ext cx=")\d+(" cy=")\d+("/>)', rf'\g<1>{cx}\g<2>{cy}\g<3>', blk)
     return xml[:p0] + blk + xml[p1:]
 
-xml = set_extents(xml, "Figure 1.",  8.6, 1352/1224)   # arquitectura_red (~9.1 cm alto)
-xml = set_extents(xml, " Figure 2.", 11.2, 3080/1531)   # escena_mina_3d  (~6.4 cm alto)
-xml = set_extents(xml, " FIGCAP3",   10.2, 2461/1401)   # grafico_rssi    (~6.7 cm alto)
+xml = set_extents(xml, "Figure 1.",  8.0, 1827/2000)   # arquitectura_poster_en (~8.8 cm alto)
+xml = set_extents(xml, " Figure 2.", 10.6, 3080/1531)   # escena_mina_3d  (~5.3 cm alto)
+xml = set_extents(xml, " FIGCAP3",   9.6, 2461/1401)    # grafico_rssi    (~5.5 cm alto)
 
 # ---------- 5) Contenido compacto en inglés ----------
 TITLE = "Design of an IEEE 802.11ac Network for the Teleoperation of an LHD Vehicle in Underground Mining Galleries"
@@ -95,7 +95,7 @@ REFS = ['Z. Sun, I. F. Akyildiz, "Channel modeling for wireless networks in tunn
         'Rajant Corp., "InstaMesh white paper," 2015.',
         'E. Egea-López et al., "Wireless comms. in underground mines," 2019.',
         'ns-3 Consortium, "ns-3.40 documentation," 2024.']
-FIGCAP1 = "Figure 1. Network architecture and QoS classes."
+FIGCAP1 = "Figure 1. Network architecture: control room, fiber-optic ring and 802.11ac access mesh."
 FIGCAP2 = " Figure 2. Level NV1640 in 3D: galleries, the 12 APs and the LHD antenna pattern."
 FIGCAP3 = " Figure 3. Serving-link RSSI: never below −72.1 dBm."
 
@@ -157,6 +157,17 @@ if j >= 0:
 else:
     print("[AVISO] REF2 no encontrado")
 
+# ---------- 5b) Salto de línea antes de cada pie de figura (caption bajo la imagen) ----------
+def br_before(xml, marker):
+    i = xml.find(marker)
+    if i < 0:
+        print(f"[AVISO] caption no encontrado: {marker[:30]}"); return xml
+    j = max(xml.rfind("<w:r>", 0, i), xml.rfind("<w:r ", 0, i))
+    return xml[:j] + "<w:r><w:br/></w:r>" + xml[j:]
+
+for cap in (FIGCAP1, FIGCAP2, FIGCAP3):
+    xml = br_before(xml, esc(cap))
+
 # Reducción tipográfica para encajar en 1 página (cuerpo 13->10pt, headings 20->17pt, sub 16->14pt)
 for a, b in [("26", "20"), ("40", "34"), ("32", "28")]:
     xml = xml.replace(f'<w:sz w:val="{a}"/>', f'<w:sz w:val="{b}"/>')
@@ -180,7 +191,7 @@ if "rId100" not in rels:
         '<Relationship Id="rId100" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image4.png"/></Relationships>')
     open(rels_path, "w", encoding="utf-8").write(rels)
 
-shutil.copy(PRES + r"\arquitectura_red.png",      UNP + r"\word\media\image2.png")
+shutil.copy(PRES + r"\arquitectura_poster_en.png", UNP + r"\word\media\image2.png")
 shutil.copy(PRES + r"\escena_mina_3d.png",        UNP + r"\word\media\image3.png")
 shutil.copy(PRES + r"\grafico_rssi_asociado.png", UNP + r"\word\media\image4.png")
 
