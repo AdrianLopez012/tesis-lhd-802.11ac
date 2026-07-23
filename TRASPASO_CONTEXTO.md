@@ -535,3 +535,72 @@ ee1bd4c PPT sobria anti-IA + lámina WMM - 99a356f naturalidad (sin tags, folios
    precalc de rayos AP<->AP pendiente de ejecutar; el usuario disfruta estas exploraciones.
 4. Los labs NO-tesis (mesh Dijkstra) presentarlos SOLO como "ilustración conceptual".
 5. El deck está ZANJADO: no seguir puliendo diseño salvo pedido explícito.
+
+---
+
+## 16. FASE POST-TESIS — MATLAB, CAPA FÍSICA y MACHINE LEARNING (2026-07-22/23)
+
+**La tesis YA se presentó y aprobó. Póster/paper NO aplican (cerrados).** Esta fase es
+exploración profunda con tiempo libre: capa física rigurosa en MATLAB + ML de cobertura.
+Todo en `fase4/matlab_capafisica/`. Ver memoria [[ml_cobertura_matlab]] para el detalle.
+
+### 16.1 Entorno MATLAB (verificado, TODAS las toolboxes licenciadas)
+- MATLAB **R2024b** en `C:\Program Files\MATLAB\R2024b\bin\matlab.exe`.
+- Correr: `matlab.exe -batch "run_XXX"` desde `C:/Users/Public`. Lanzadores en
+  `C:\Users\Public\run_*.m` (addpath + llamar función) por el bug de espacios en rutas.
+- **Toolboxes disponibles**: Deep Learning, Statistics & ML, WLAN, Parallel (subido a
+  **10 workers**: `c=parcluster('Processes'); c.NumWorkers=10; saveProfile(c)`), Antenna, Comms, RF.
+- GOTCHAS MATLAB: (a) en -batch NO se definen funciones inline; (b) arrays de capas de red
+  necesitan `;` entre cada capa (si no: "vertcat dimensions"); (c) la ventana
+  training-progress SOLO se ve en MATLAB con interfaz, NO en -batch.
+
+### 16.2 Lo construido (fase4/matlab_capafisica/)
+- `e1_analisis_modal.m` — túnel como guía de onda: fc(TE10)=30 MHz, ~19823 modos bajo 5 GHz,
+  justifica físicamente el two-slope. → e1_modos.png ✅
+- `gen_dataset_canal.m` — genera dataset por RAY-TRACING SBR sobre STL con roca (εr=6,σ=0.01):
+  posición LHD + AP → RSSI + delay spread + nº rayos + reflexiones + cruces NLOS. parfor 10w,
+  6 reflexiones. Densidades: prueba/media/fina. **fina = 825 muestras en 14 min**.
+  Archivos: dataset_canal_media.csv (340), dataset_canal_fina.csv (825).
+  NOTA física: ~2/3 de enlaces son NLOS por roca (sin rayos) → correcto (no cruza el pilar 26 m).
+- `entrenar_red_cobertura.m` — compara 4 predictores: red profunda (Deep Learning),
+  fitrnet, GPR (Gaussian Process, da ±σ), two-slope. RESULTADO (media 340): **GPR RMSE 0.06 dB
+  R²=1.0** (sospechoso de tan suave), red 3.6 dB, **two-slope FALLA 10 dB** (confirma que la
+  caracterización de la tesis era aproximada). Inferencia ML ~30000× más rápida que ray-tracing.
+  PENDIENTE: re-entrenar con dataset FINO (825) para números realistas — YA generado, falta correr
+  `entrenar_red_cobertura('fina')`.
+- `ver_red_por_dentro.m` — dibuja la red (7→8→6→1) con pesos como líneas coloreadas
+  (azul+/rojo−, grosor=magnitud), animada época a época → red_pesos_evolucion.mp4. Revela que
+  la red descubre sola la física: "cruces roca" pesa negativo fuerte, "distancia" domina.
+- `ver_entrenamiento_vivo.m` — abre ventana training-progress + mapa de cobertura aprendido.
+- `e5_paquete_en_vivo.m` — animación del paquete OFDM 802.11ac por el canal (4 paneles: onda,
+  espectro, constelación, cadena RX). FIX: eqSym = 3ª salida de wlanVHTDataRecover.
+
+### 16.3 DECISIONES DE FONDO acordadas (importante para no repetir debates)
+- **NO reemplazar ns-3.** Es de lo mejor para red de paquetes; OMNeT++ da IGUAL fiabilidad (no
+  mejor, no sube cuartil). Lo que sube a Q1 es VALIDACIÓN + canal riguroso + reproducibilidad,
+  NO cambiar de simulador. Cada herramienta en su capa: MATLAB (canal físico/ray-tracing + PHY)
+  ↔ ns-3 (red/QoS/latencia).
+- **El punto débil real = el CANAL** ("a la volada", two-slope con constantes). Plan: alimentar
+  ns-3 con el canal REAL del ray-tracing (pérdidas/delay-spread por zona) en vez de constantes.
+- Antena/polarización circular/MIMO/curvas se justifican con FÍSICA (no IA sola). El ray-tracing
+  demuestra la cobertura en curvas (donde el two-slope falla); la IA la generaliza/acelera.
+
+### 16.4 ⚠️ EL USUARIO NO ENTIENDE ns-3 — máxima prioridad pedagógica
+El usuario dijo textual "no entiendo nada de lo que hicimos en ns3". Antes de seguir
+construyendo, hay que EXPLICARLE su propia simulación. Preferencias que funcionaron:
+- Analogía del "videojuego de la mina que prueba si el WiFi aguanta" (NO código, NO tecnicismos).
+- Diagrama visual de los 5 pasos de la sim (widget mostrado, gustó).
+- **Explorador FlowMonitor interactivo** (artefacto publicado, clicable): el viaje del paquete
+  LHD→antena→fibra→control con los datos reales de principal_s1. HTML en scratchpad
+  `flowmonitor_explorador.html`. FUNCIONÓ como enfoque.
+- Recorrer el .cc línea por línea NO funcionó (demasiado técnico, "no entendí nada").
+- REGLA: ir MUY despacio, visual, una idea a la vez, confirmar antes de seguir.
+
+### 16.5 PENDIENTE INMEDIATO cuando se retome
+1. **NetAnim** (lo que pidió el usuario al final): ns-3 tiene un visualizador gráfico llamado
+   NetAnim que reproduce la animación de la simulación (nodos y paquetes moviéndose). El .cc YA
+   genera archivos `*_v3_anim.xml` (NetAnim) en algunos escenarios. Hay que: verificar/activar
+   AnimationInterface en el .cc, generar el .xml, y abrir NetAnim (está en ~/ns-allinone-3.40/netanim).
+2. Re-entrenar la red con dataset_canal_fina.csv (825) para números ML realistas.
+3. Datos reales del FlowMonitor (principal_s1): Comandos OWD 3.01ms/PLR 0.16%,
+   Vídeo OWD 1.87ms/goodput 40.3Mbps, Telemetría OWD 4.65ms. (varían levemente por semilla).

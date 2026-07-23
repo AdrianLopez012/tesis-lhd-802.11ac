@@ -8,6 +8,187 @@
 
 ---
 
+## BLOQUE 0 — FUNDAMENTOS (lo básico que DEBE salir automático, sin pensar)
+
+### 0.A · Sobre tu propia tesis
+
+**0.1 ¿Cuál es el objetivo de su tesis? (LA más básica — automática)**
+"Diseñar una red IEEE 802.11ac que haga posible la teleoperación de un vehículo LHD en las
+galerías subterráneas del nivel NV1640 de la mina Cerro Lindo, con evidencia verificable de
+que cumple los indicadores de desempeño que la teleoperación exige."
+
+**0.2 ¿Cuál es el problema que resuelve?**
+El operador del LHD trabaja en el frente de acarreo, la zona de mayor riesgo de la mina
+(desprendimientos, gases, maquinaria). Para sacarlo de ahí se necesita teleoperar el
+vehículo — y eso exige una red con vídeo en tiempo real, comandos de baja latencia y
+telemetría continua. El problema: demostrar que esa red es viable en una mina peruana real.
+
+**0.3 ¿Cuál es su aporte / qué tiene de original?**
+Tres cosas: el diseño completo sobre la GEOMETRÍA REAL de un nivel productivo peruano (no un
+túnel genérico); la validación estadística a nivel de paquete (10 semillas, IC 95 %) con
+recorrido real de acarreo; y la convergencia de tres métodos independientes de propagación
+(modelo calibrado, ray-tracing, presupuesto de enlace).
+
+**0.4 ¿Cuál es el alcance y cuáles las limitaciones?**
+Alcance declarado: trabajo de gabinete (diseño + simulación), UN vehículo, el nivel NV1640
+como caso de estudio. Limitaciones declaradas: sin mediciones de campo propias (validación
+de diseño, no experimental) y sin escenario de falla catastrófica de APs.
+
+**0.5 ¿Cómo está estructurada la tesis?**
+Cap. 1: problema, objetivos, justificación y marco ético. Cap. 2: marco teórico y revisión
+sistemática. Cap. 3: diseño y validación por simulación (el corazón). Cap. 4: análisis de
+idoneidad técnico-económica-ambiental-legal. Conclusiones alineadas a los 6 objetivos.
+
+**0.6 ¿Por qué eligió este tema?**
+[Tu historia personal en 20 s] + "porque une lo que la carrera me dio — redes y RF — con el
+problema de seguridad más letal de la industria más importante del país."
+
+**0.7 ¿Por qué la mina Cerro Lindo?**
+Yacimiento polimetálico subterráneo de Nexa en Ica, con método de explotación por hundimiento
+(block caving tipo El Teniente) y documentación disponible del nivel NV1640 — plano real,
+equipos de red documentados y un site survey de referencia. Caso de estudio con datos reales.
+
+### 0.B · El dominio minero
+
+**0.8 ¿Qué es un LHD?**
+Load-Haul-Dump: cargador de bajo perfil que CARGA mineral en el punto de extracción, lo
+ACARREA por la galería y lo DESCARGA en el pique de traspaso. Es el vehículo central del
+ciclo de producción en minería subterránea.
+
+**0.9 ¿Qué es teleoperación? ¿Es lo mismo que automatización?**
+No. Teleoperación = un humano conduce el vehículo A DISTANCIA con vídeo y mandos en tiempo
+real (el lazo de control pasa por la red). Automatización/autonomía = el vehículo decide
+solo. La teleoperación mantiene el juicio humano y es el paso realista intermedio.
+
+**0.10 ¿Qué es block caving / El Teniente?**
+Método de explotación por hundimiento: el mineral se fractura y cae por gravedad a puntos de
+extracción (drawpoints) dispuestos en calles paralelas de producción — el layout "El
+Teniente" chileno. El LHD recoge el mineral en esos puntos.
+
+**0.11 ¿Qué son galería, crucero, drawpoint y pique?**
+Galería: túnel de producción por donde circula el LHD. Crucero: túnel transversal que conecta
+galerías. Drawpoint: boca donde cae el mineral y el LHD carga. Pique de traspaso: pozo
+vertical donde el LHD descarga y el mineral baja al siguiente nivel.
+
+**0.12 ¿Qué dimensiones tiene el escenario?**
+Tres galerías paralelas de ~135 m separadas ~26 m, sección de 5 × 4.5 m, conectadas por
+cruceros. El ciclo real de acarreo dura ~197 s a 2.2 m/s (~8 km/h).
+
+### 0.C · Conceptos de red y RF (definiciones de 10 segundos)
+
+**0.13 ¿Qué es IEEE 802.11ac?**
+La quinta generación de Wi-Fi (Wi-Fi 5): estándar de red inalámbrica en 5 GHz con canales
+anchos (40/80 MHz), MIMO y modulación hasta 256-QAM. En su versión industrial/minera es la
+base de los equipos del proyecto.
+
+**0.14 ¿Qué es un punto de acceso (AP)?**
+El nodo fijo de radio que da cobertura a un área y conecta a los clientes inalámbricos (el
+LHD) con la red cableada. Mi diseño usa 12: 5 Hawk en galerías y 7 Cardinal en cruceros.
+
+**0.15 ¿Qué es una red mesh (malla)?**
+Los APs se enlazan también ENTRE SÍ por radio, formando una malla que se auto-organiza y
+auto-repara sin nodo raíz. Si un enlace cae, el tráfico busca otro camino. La del diseño es
+Kinetic Mesh con protocolo InstaMesh.
+
+**0.16 ¿Qué es roaming y qué es handover?**
+Roaming: el proceso por el cual el cliente móvil cambia de AP mientras se desplaza.
+Handover (traspaso): el evento concreto de cambio. Mi criterio: ≤ 150 ms; medí 0.91 ms en
+el peor caso con estrategia make-before-break (asegura el nuevo enlace antes de soltar el
+anterior).
+
+**0.17 ¿Qué es latencia? ¿OWD? ¿RTT?**
+Latencia: tiempo que tarda un paquete de origen a destino. OWD (one-way delay): esa demora en
+UN sentido. RTT (round-trip time): ida y vuelta — lo que importa al lazo de control (comando
+baja, confirmación sube). Mis números: OWD comandos 3.04 ms; RTT 6.12 ms.
+
+**0.18 ¿Qué es jitter?**
+La VARIACIÓN de la latencia entre paquetes consecutivos. Para vídeo importa más que la
+latencia media: el jitter alto produce saltos de imagen. Mi P95: 0.28 ms (límite 10).
+
+**0.19 ¿Qué es PLR?**
+Packet Loss Ratio: porcentaje de paquetes que no llegan. Vídeo tolera hasta 1 % con códec
+robusto; comandos exigen ≤ 0.5 %. Medí 0.01 % y 0.06 %.
+
+**0.20 ¿Diferencia entre throughput y goodput?**
+Throughput: bits totales transferidos por segundo (incluye cabeceras). Goodput: solo los
+datos ÚTILES de la aplicación. Reporto goodput: 40 Mbps de vídeo útil contra 38 requeridos.
+
+**0.21 ¿Qué significa disponibilidad 99.9 %?**
+Fracción del tiempo de operación con el servicio utilizable. 99.9 % admite ~1.4 min de
+indisponibilidad por día. Mi resultado en el recorrido simulado: 100 % — el enlace nunca
+cayó del umbral utilizable.
+
+**0.22 ¿Qué es RSSI y qué significa −72 dBm? ¿Por qué es negativo?**
+RSSI: potencia de la señal recibida. Se mide en dBm — decibelios relativos a 1 milivatio, en
+escala logarítmica: 0 dBm = 1 mW; los valores negativos son fracciones de milivatio
+(−72 dBm ≈ 63 picovatios). Más cercano a cero = más señal. Mi peor valor: −72.1 dBm, aún
+9.9 dB por encima del umbral utilizable de −82.
+
+**0.23 ¿Qué diferencia hay entre dB, dBm y dBi?**
+dB: relación logarítmica entre dos cantidades (ganancia/pérdida). dBm: potencia absoluta
+referida a 1 mW. dBi: ganancia de una antena respecto al radiador isotrópico ideal. (Y dBic:
+lo mismo pero para polarización circular — así se especifica la HELI-40 de 4.8 dBic.)
+
+**0.24 ¿Qué es QoS y qué es WMM?**
+QoS: tratar distinto al tráfico según su criticidad. WMM (Wi-Fi Multimedia) es el QoS del
+Wi-Fi — 4 clases de acceso: voz (AC_VO, mis comandos), vídeo (AC_VI), mejor esfuerzo (AC_BE,
+mi telemetría) y fondo. La clase alta accede antes al medio.
+
+**0.25 ¿Qué es MIMO 2×2?**
+Multiple-Input Multiple-Output: usar 2 antenas en transmisión y 2 en recepción para enviar
+DOS flujos de datos simultáneos por el mismo canal — duplica la capacidad si los caminos son
+distinguibles (en mi caso lo garantizan las dos polarizaciones circulares).
+
+**0.26 ¿Qué es OFDM?**
+Modulación que divide el canal en cientos de subportadoras estrechas y lentas en paralelo —
+robusta al multitrayecto porque cada subportadora es fácil de igualar, y el prefijo cíclico
+absorbe los ecos del túnel.
+
+**0.27 ¿Qué es 256-QAM y qué es el MCS?**
+256-QAM: modulación que empaqueta 8 bits por símbolo combinando amplitud y fase — exige SNR
+alto. MCS: el índice que combina modulación + codificación; el gestor de tasa sube o baja de
+MCS según la calidad del enlace. Mostré la constelación 256-QAM reconstruida tras el canal.
+
+**0.28 ¿Qué es el backbone y por qué fibra monomodo?**
+La red troncal que lleva el tráfico agregado de los APs a superficie. Fibra monomodo: un solo
+modo de luz → decenas de km sin repetidores, inmune a interferencia electromagnética — ideal
+para el subsuelo industrial. En anillo: redundancia ante un corte.
+
+**0.29 ¿Qué es PoE?**
+Power over Ethernet: alimentar el AP por el mismo cable de datos Cat6 desde el switch — un
+solo tendido por nodo, clave en galería.
+
+**0.30 ¿Qué es ns-3?**
+Simulador de redes de código abierto, estándar académico, de eventos discretos: modela cada
+paquete individual atravesando las capas del estándar (PHY 802.11ac, MAC EDCA, IP, UDP) con
+tiempos de microsegundos. Sobre él escribí mi módulo de propagación propio.
+
+**0.31 ¿Qué es un KPI y qué es un RNF?**
+KPI: indicador clave de desempeño — el número que dice si el servicio sirve (latencia,
+pérdida…). RNF: requisito no funcional — la exigencia de calidad que el sistema debe cumplir
+(los KPIs con sus umbrales son mis RNF: RNF-05 traspaso ≤ 150 ms, RNF-06 disponibilidad
+≥ 99.9 %).
+
+**0.32 ¿Qué es la sensibilidad del receptor?**
+La potencia mínima que el radio necesita para decodificar a una tasa dada: a mejor señal
+sobre la sensibilidad, más alto el MCS utilizable. Mi umbral de servicio: −82 dBm; margen
+medido: 9.9 dB.
+
+**0.33 ¿Qué es LOS / NLOS?**
+Line of Sight: hay línea visual directa transmisor-receptor. NLOS: no la hay (una esquina de
+galería en mi caso — penalización de 10 dB por cruce en el modelo).
+
+**0.34 ¿Qué es el presupuesto de enlace (link budget)?**
+La contabilidad del enlace: potencia transmitida + ganancias de antenas − pérdidas de
+trayecto y cables = potencia recibida; se compara contra la sensibilidad y la diferencia es
+el MARGEN. Es el cálculo analítico que confirma la cobertura antes de simular.
+
+**0.35 ¿Qué flujos transporta la red y cuánto pesa cada uno?**
+Tres: vídeo de conducción 40 Mbps de subida (AC_VI), comandos ≤ 0.5 Mbps de bajada (AC_VO) y
+telemetría 0.1 Mbps de subida (AC_BE). El vídeo es el volumen; los comandos, la criticidad.
+
+---
+
 ## BLOQUE 1 — FÍSICA Y PROPAGACIÓN (perfil Dr. Chávez)
 
 **1.1 ¿Por qué un modelo de dos pendientes y qué significa físicamente el punto de quiebre a 40 m?**
